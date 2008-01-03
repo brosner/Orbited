@@ -1,0 +1,154 @@
+body {
+    font-family: monospace;
+    font-size: 120%;
+}
+.event {
+    border: 1px dashed blue;
+    margin: 5px;
+    padding: 2px;
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+.joined {
+    border: 1px dashed green;
+    margin: 5px;
+    padding: 2px;
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+    color: green;
+}
+.left {
+    border: 1px dashed red;
+    margin: 5px;
+    padding: 2px;
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+    color: brown;
+}
+.sender {
+    font-weight: bold;
+    font-size: 105%;
+    padding-right: 5px;
+}
+.message {
+    padding-left: 5px;
+}
+.admins a:link {
+    color: red;
+}
+.subadmins a:link {
+    color: orange;
+}
+.voices a:link {
+    color: brown;
+}
+.people a:link {
+    color: black;
+}
+.channeltext {
+    display: none;
+}
+.channelnames {
+    display: none;
+}
+#main {
+    width: 95%;
+    height: 90%;
+    border: 1px solid black;
+    border-bottom: 0px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0px;
+}
+#maintop {
+    width: 95%;
+    border: 1px solid black;
+    border-bottom: 0px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0px;
+    background: red;
+}
+#mainbottom {
+    width: 95%;
+    border: 1px solid black;
+    border-top: 0px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0px;
+    background: black;
+}
+#channel {
+    width: 70%;
+    background: black;
+    color: white;
+    border: 0px;
+    padding: 0px;
+}
+#channel a:link {
+    color: red;
+    font-weight: bold;
+    text-decoration: none;
+    padding-right: .5em;
+    padding-left: .5em;
+}
+#channel a:hover {
+    background: white;
+}
+#box {
+    width: 70%;
+    height: 100%;
+    padding: 0px;
+    overflow-y: scroll;
+    background: #ffeedd;
+}
+#side {
+    float: right;
+    width: 30%;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    background: #eeddff;
+}
+#side a:link, #side a:visited {
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+    display: block;
+    text-decoration: none;
+}
+#side a:hover {
+    background: #ddffee;
+}
+#nickname {
+    width: 30%;
+    float: right;
+    text-align: center;
+    font-weight: bold;
+    border: 0px;
+    padding: 0px;
+    background: #ff0000;
+}
+#chat {
+    width: 70%;
+    border: 0px solid black;
+    border-top: 1px solid black;
+    margin: 0px;
+    padding: 0px;
+}
+#channelfield {
+    width: 30%;
+    float: right;
+    text-align: center;
+    font-weight: bold;
+    border: 0px;
+    padding: 0px;
+    background: black;
+    color: white;
+}
+#events {
+    display: none;
+}

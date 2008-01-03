@@ -1,0 +1,22 @@
+body {
+    font-family: sans-serif;
+}
+
+h1 span{
+	color: #888;
+}
+
+.section {
+	margin: 10px;
+	border: 2px solid #eee;
+}
+
+.section h4 {
+	background-color: #eee;
+	margin: 0px;
+	padding:2px;
+}
+
+ol a:link, ol a:visited {
+	color: blue;
+}

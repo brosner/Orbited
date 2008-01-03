@@ -1,0 +1,18 @@
+<html>
+ <head>
+  <title>Pyevent Error</title>
+ </head>
+ <body>
+  <h1>Pyevent Error</h1>
+
+  <p>The Orbited daemon sometimes reports the following error when running on linux distros:</p>
+
+  <pre>Error in pyevent 0.3 on ubuntu in python 2.5.</pre>
+
+  <p>This error is caused by a problem pyevent 0.3 imcompatiblity with python 2.5 The only problem is that pyevent 0.3 cannot raise errors properly. So in short, this error can be surmised as "An error occured, and there was an error reporting the error."
+  </p>
+
+  <p>Because this is such a general error, there is no telling what may actually be causing it in any particular case. The orbited development team therefore uses a patched version of pyevent. If you download the pyevent source code, then replace their event.c with <a href="http://orbited.org/pyevent/event.c">our patched event.c</a>, then you'll get actual error reporting. This is critical in getting support from the irc channel or the mailing list.
+  </p>
+ </body>
+</html>

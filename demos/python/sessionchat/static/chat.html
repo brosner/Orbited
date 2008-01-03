@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CherryChat</title>
+    <!--Import both the css stylesheet and the javascript.-->
+    <link rel="stylesheet" href="/static/chat.css">
+    <script src="http://127.0.0.1:8000/_/orbited.js" type="text/javascript" charset="utf-8"></script>
+    <script src="chat.js" type="text/javascript" charset="utf-8"></script>
+  </head>
+  <body>
+    <!--This text box and submit button is for the user's nickname.
+         
+        Pressing submit will set the source of the 'events' iframe to
+        come from the orbit event daemon, and then sends a join message
+        to the chat application.
+    -->
+    <input type="text" id="nickname">
+    <input type="button" value="nickname" onclick="connect();">
+    
+    <!--This div will contain the actual content of the chat.-->
+    <div id="box"></div>
+    
+    <!--This text box and submit button accept chat messages.-->
+    <input type="text" id="chat">
+    <input type="submit" value="chat" onClick="send_msg();">
+    
+    <!--This iframe recieves orbit to browser events.-->
+    <iframe id="events"></iframe>
+  </body>
+</html>

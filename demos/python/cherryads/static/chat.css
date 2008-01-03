@@ -1,0 +1,26 @@
+body {
+  margin-left:2em;
+}
+
+/* The box with events inside. */
+#box {
+  border: 1px solid black;
+  width: 80%;
+  margin: .5em auto .5em 0;
+  height: 400px;
+  overflow: scroll;
+}
+
+/* Each event. */
+.event {
+  border: 1px dashed blue;
+  margin: .5em auto;
+  padding: .2em;
+  width: 90%;
+  display: hidden;
+}
+
+/* Hide the events iframe. */
+#events {
+  display: none;
+}

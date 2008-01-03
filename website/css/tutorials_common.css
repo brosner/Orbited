@@ -1,0 +1,102 @@
+
+div {
+    width: 60em;
+    text-align: justify;
+}
+body {
+  font-family: verdana, helvetica, arial, sans-serif;
+  font-size: 73%;  /* Enables font size scaling in MSIE */
+}
+
+html > body {
+  font-size: 9pt;
+}
+a {
+  color: rgb(61,92,122);
+  background-color: transparent;
+  text-decoration: underline;
+  margin: 0;
+  padding: 0 1px 2px 1px;
+}
+
+a:hover {
+ color: rgb(117,144,174);
+ text-decoration: none;
+}
+
+ol {
+  margin: 1em 0 1.5em 0;
+  padding: 0;
+}
+
+ul {
+  list-style-type: square;
+  margin: 1em 0 1.5em 0;
+  padding: 0;
+}
+
+dl {
+  margin: 1em 0 0.5em 0;
+  padding: 0;
+}
+
+ul li {
+  line-height: 1.5em;
+  margin: 1.25ex 0 0 1.5em;
+  padding: 0;
+}
+
+ol li {
+  line-height: 1.5em;
+  margin: 1.25ex 0 0 2em;
+  padding: 0;
+}
+
+
+.toc {
+    margin-top: 10px;
+    margin-left: 10px;
+    background: #dddddd;
+    border: 1px solid black;
+    width: 20em;
+}
+h1 {
+  color: rgb(117,144,174);
+  background-color: transparent;
+  font-family: "trebuchet ms", verdana, helvetica, arial, sans-serif;
+  font-size: 186%;
+  margin: 0;
+  padding: 1.5ex 0 0 0;
+}
+
+h2 {
+  color: rgb(61,92,122);
+  background-color: transparent;
+  font-family: "trebuchet ms", verdana, helvetica, arial, sans-serif;
+  font-weight: normal;
+  font-size: 151%;
+  margin: 0;
+  padding: 1ex 0 0 0;
+}
+
+p {
+  line-height: 1.75em;
+  margin: 1em 0 1.5em 0;
+  padding: 0;
+}
+.toc {
+    padding: 10px;
+/*    padding-left: 10px; */
+}
+
+.browser {
+    border: 1px solid black; 
+    padding: 5px; 
+    margin: 10px; 
+    padding-bottom: 20px; 
+    width: 50em;
+}
+.browser h1 {
+    font-size: 200%;
+    color: black;
+}

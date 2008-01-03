@@ -1,0 +1,50 @@
+# we want to use getLogger to provide a logging object that has the following functions
+# debug
+# info
+# access
+# warn
+# error
+# critical
+# enable
+# disable
+
+# enable or disable will be an alternative way to change the defaults besides using the configuration.
+# they will perform the appropriate action and then return the logger object (return self)
+
+# with no config (default settings), info, access, warn, error, and critical will be sent to the console
+# config file: here is an example config file.
+
+[logging]
+console = info, critical # 
+/somewhere/orbited.log = warn, error, critical # send warn, error, and critical events to orbited.log
+/somewhere/debug = debug # send debugging output to the file /somewhere/debut
+
+debug.enable = all # enable any debug output
+debug.disable = http.HTTPConnection # disable debug output from http.HTTPConnection
+debug.disable = transports.sse.SSETransport # disable debug output from transports.sse.SSETransport
+
+
+##############
+# using the logger
+# orbited/transports/sse.py
+
+from orbited.log import getLogger
+
+logger = getLogger("transports.sse.SSETransport")
+
+logger.debug("something: %s" % (somedata,))
+
+logger.access("HTTP"
+
+
+
+
+#################
+# programmatically turning on debugging to the console and to a file
+# any programmitic changes will override the config file.
+from orbited.log import getLogger
+logger = getLogger("transports.sse.SSETransport").enable("debug", "console").enable("debug", "file:/somewhere/debug.info")
+
+logger.debug("something: %s" % (somedata,))
+
+

@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-AU">
+  <head>
+    <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" href="./prosimii-screen.css" media="screen, tv, projection" title="Default" />
+    <link rel="stylesheet" type="text/css" href="./prosimii-print.css" media="print" />
+    <title>Orbit Event Daemon</title>
+  </head>
+
+  <body>
+    <!-- For non-visual user agents: -->
+      <div id="top"><a href="#main-copy" class="doNotDisplay doNotPrint">Skip to main content.</a></div>
+    <!-- ##### Header ##### -->
+    <div id="header">
+      <!--div class="superHeader">
+      May 9th, 2007
+      </div-->
+
+      <div class="midHeader">
+        <h1 class="headerTitle" title="Orbited: Scaling Comet Applications"><img src="orbited-brush.png"></h1>
+
+
+        <br class="doNotDisplay doNotPrint" />
+
+        <!--div class="headerLinks">
+          <span class="doNotDisplay">Tools:</span>
+          <a href="./index2.html">#orbit IRC channel</a>
+          <span class="doNotDisplay">|</span>
+          <a style="cursor: help;" title="Thanks to CSS, this page is already printer friendly!">printer-friendly version &laquo;</a>
+        </div-->
+      </div>
+
+      <div class="subHeader">
+        <span class="doNotDisplay">Navigation:</span>
+        <a href="./index.html">Home</a> |
+        <a href="./docs">Documentation</a> |
+        <a href="./tutorials">Tutorials</a> |
+        <a href="./download.html">Download</a> |
+        <a href="./about.html">About</a>
+      </div>
+    </div>
+
+    <!-- ##### Main Copy ##### -->
+
+    <div id="main-copy">
+      <div class="rowOfBoxes">
+        <div class="twoThirds noBorderOnLeft">
+          <h1>Welcome to the Orbit Event Daemon Homepage</h1>
+          <p>Orbited is an HTTP daemon that is optimized for long-lasting comet connections. It is designed to be easily integrated with new and existing applications.</p>
+
+        </div>
+
+        <div class="oneThird">
+          <h1>Latest News</h1>
+
+          <a href="./index.html" class="newsHeading">Orbit Webpage Launched</a>
+          <p class="newsDate">9 May 07</p>
+          <p class="newsSummary">Orbit is now ready to be launched thanks to the new webpage</p>
+
+          <a href="./download.html" class="newsHeading">Orbit 0.2 Released</a>
+          <p class="newsDate">8 May 07</p>
+          <p class="newsSummary">The Orbit 0.2 Daemon has been released under the BSD license as experimental software.</p>
+
+          <div class="more"><a href="./index.html">More News &raquo;</a></div>
+
+          <p class="filler"><!-- Filler para to extend left vertical line --></p>
+        </div>
+      </div>
+
+      <div class="rowOfBoxes dividingBorderAbove">
+        <div class="quarter noBorderOnLeft">
+          <h1>Simple</h1>
+          <p>Orbit is designed to follow the database connector model of development so that you don’t have to deal with any comet-specific details. There is a simple client API that you simply import and start dispatching events from your server application to the browser.</p>
+          
+        </div>
+
+        <div class="quarter">
+          <h1>Scalable</h1>
+          <p>Orbit borrows from its scaling architecture from <a href="http://www.danga.com/memcached">memcached</a>. Every orbit node on the system is unaware of the other orbit nodes. A hash function defined by the client API maps user keys to nodes. The end result is that the system scales linearly and a multiple nodes can fail without causing a system crash.
+          </p>
+          <p class="filler"><!-- Filler para to extend left vertical line --></p>
+        </div>
+
+        <div class="quarter">
+          <h1>Cross-Platform</h1>
+          <p>Orbit is written in python and is based on the <a href="libevent">libevent</a> wrapper known as <a href="pyevent">pyevent</a>. Python, libevent, and pyevent run on all major operating systems including Linux, Windows, and OS X. Therefore Orbit can be deployed anywhere.</p>
+          <!--p>The Orbit Client API is simple to implement, so no matter what language you choose for your application, there will be an Orbit Client API available or it will be little difficulty to write your own.</p-->
+        </div>
+
+        <div class="quarter">
+          <h1>Fast</h1>
+          <p>Orbit is built on <a href="">libevent</a>, a lightning quick asynchronous network communication library written in C. Orbit therefore uses the best polling option available on your system, whether it’s poll, epoll, kqueue. Furthermore, the protocol is kept purposefully simple, so there is little processing overhead.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ##### Footer ##### -->
+
+    <div id="footer">
+      <span class="doNotPrint">
+        For comments or questions about this website, please
+        <a href="mailto:email.address@is.invalid" title="NB: invalid email address">email the Webmaster</a><br />
+      </span>
+
+      <strong>URI &raquo;</strong> http://domain.is.invalid/prosimii/index.html
+      &bull; <strong>Updated &raquo;</strong> 2004-Oct-24 10:31 +1000
+    </div>
+  </body>
+</html>

@@ -1,0 +1,68 @@
+#main-copy {
+    width: 60em;
+}
+pre {
+    border: 1px solid black;
+    width: 54em;
+    margin-left: 2em;
+    padding: 1em;
+}
+
+ol {
+  margin: 1em 0 1.5em 0;
+  padding: 0;
+}
+
+ul {
+  list-style-type: square;
+  margin: 1em 0 1.5em 0;
+  padding: 0;
+}
+
+dl {
+  margin: 1em 0 0.5em 0;
+  padding: 0;
+}
+
+ul li {
+  line-height: 1.5em;
+  margin: 1.25ex 0 0 1.5em;
+  padding: 0;
+}
+
+ol li {
+  line-height: 1.5em;
+  margin: 1.25ex 0 0 2em;
+  padding: 0;
+}
+
+
+.toc {
+    margin-top: 10px;
+    margin-left: 10px;
+    background: #dddddd;
+    border: 1px solid black;
+    width: 20em;
+}
+
+p {
+  line-height: 1.75em;
+  margin: 1em 0 1.5em 0;
+  padding: 0;
+}
+.toc {
+    padding: 10px;
+/*    padding-left: 10px; */
+}
+
+.browser {
+    border: 1px solid black; 
+    padding: 5px; 
+    margin: 10px; 
+    padding-bottom: 20px; 
+    width: 50em;
+}
+.browser h1 {
+    font-size: 200%;
+    color: black;
+}

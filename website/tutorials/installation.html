@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <title>Orbited: Installation Tutorial</title>
+  <link rel="stylesheet" href="../css/tutorials_common.css">
+</head>
+<body>
+  <h1>Installing Orbit</h1>
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+      <li><a href="#windows">Windows</a></li>
+      <li><a href="#ubuntu">Ubuntu Linux</a></li>
+      <li><a href="#osx">OS X</a></li>
+    </ul>
+  </div>
+  
+  <div id="windows" class="section">
+    <h2>Windows</h2>
+    <p>Orbited runs perfectly fine under Windows. There are only three steps to get Orbited working: Install Python 2.4+, install pyevent, then install Orbited.</p>
+    
+    <ol>
+      <li>
+        <h3>Python</h3>
+        <p>Python is an open-source interpreted dynamic language. You can download the latest from <a href="http://python.org/download">python.org/download</a>, or get the file directly: <a href="http://python.org/ftp/python/2.5.1/python-2.5.1.msi">python-2.5.1.msi</a>. Simply run the installer and follow the instructions.</p>
+        
+        <!-- TODO: can we get a screenshot of adding to the path variable -->
+        <p>Once you install Python, it will be helpful to add <tt>c:\python-directory\scripts</tt> to your <tt>Path</tt> variable. That is, if you installed Python to <tt>c:\python25</tt> then you should add <tt>c:\python25\scripts</tt> to the <tt>Path</tt> variable. You can do this by right-clicking My computer, selecting the “Advanced” tab, clicking “Environmental Variables”, selecting “Path” from the System Variables list, and clicking “Edit”. Just add a <tt>;c:\python25\scripts</tt> to the end of whatever is already there. Make sure not to put a space between the <tt>;</tt> and what’s already there.</p>
+      </li>
+      <li>
+        <h3>pyevent</h3>
+        <p>pyevent is a Python interface to the popular libevent library. It allows for fast, asynchronous network I/O that scales well. libevent will choose the best possible polling method available on your system. You can find the appropriate installer at the <a href="http://code.google.com/p/pyevent/downloads/list">pyevent Google Code</a> website. If you installed Python 2.5 then you can just click <a href="http://pyevent.googlecode.com/files/event-0.3.win32-py2.5.exe">event-0.3.win32-py2.5.exe</a> to download the appropriate pyevent package.</p>
+      </li>
+      <li>
+        <h3>Orbited</h3>
+        <p>The third step is to install the Orbit Event Daemon itself. The install process of Orbited requires that you download setuptools. Instead of manually installing setuptools and then manually installing Orbited, you can simply use the bootstrap script. Right-click and save <a href="http://peak.telecommunity.com/dist/ez_setup.py">ez_setup.py</a> to your hard drive, then at the command line execute <tt>python ez_setup.py orbited</tt> to begin the install process. This will download setuptools if you don’t already have it, and then download Orbited from the <a href="http://cheeseshop.python.org/pypi" title="Python Package Index : Home">cheeseshop</a> repository.</p>
+        
+        <p>If you already have setuptools installed, then you should have the easy_install binary as well. In this case, just run <tt>easy_install orbited</tt> and it will download and install the daemon.</p>
+      </li>
+    </ol>
+    
+    <p>At this point you’re done. Orbited is on your system and ready for use. You can start it up by executing <tt>orbited</tt> in a terminal window.</p>
+  </div>
+  
+  <div id="ubuntu" class="section">
+    <h2>Ubuntu Linux</h2>
+    <p>There are only three steps to get orbit working on Ubuntu or Debian: Install Python 2.4+, install pyevent, then install Orbited.</p>
+    
+    <ol>
+      <li>
+        <h3>Python</h3>
+        <p>Python is an open-source interpreted dynamic language. You should already have Python 2.4+ on your system. If you have reason to believe that you don’t, then try running <tt>python</tt> in a terminal window. The interpreter should start up and display the version. If you don’t have the Python interpreter then run <tt>sudo apt-get install python</tt> to install the latest version of Python.</p>
+      </li>
+      <li>
+        <h3>pyevent</h3>
+        <p>pyevent is a Python interface to the popular libevent library. It allows for fast, asynchronous network I/O that scales well. libevent will choose the best possible polling method available on your system. There are three basic steps to installing pyevent.</p>
+        
+        <ol>
+          <li>Install the Python Development Header files. You can do this by running <tt>sudo apt-get install python-dev</tt> in a terminal.</li>
+          <li>Install the libevent Development Header files. You can do this by running <tt>sudo apt-get libevent1 libevent-dev</tt> in a terminal.</li>
+          <li>Download the pyevent source, <a href="http://pyevent.googlecode.com/files/pyevent-0.3.tar.gz">pyevent-0.3.tar.gz</a> and extract it to your hard drive. Find that directory in a terminal and run <tt>sudo python setup.py install</tt>. This should compile and install pyevent.</li>
+          <li> Note, If you encounter errors with the previous step, you may need to execute this command first: <tt>sudo apt-get install gcc libc6-dev</tt></li>
+          <li>You can test your success by running <tt>python</tt> to enter the Python interpreter, and then executing the command <tt>import event</tt>. If you don’t receive any errors then you were successful.</li>
+        </ol>
+      </li>
+      <li>
+        <h3>Orbited</h3>
+        <p>The third step is to install the Orbit Event Daemon itself. The install process of Orbited requires that you download setuptools. Instead of manually installing setuptools and then manually installing Orbited, you can simply use the bootstrap script. Right-click and save <a href="http://peak.telecommunity.com/dist/ez_setup.py">ez_setup.py</a> to your hard drive, then in a terminal window execute <tt>python ez_setup.py orbited</tt> to begin the install process. This will download setuptools if you don’t already have it, and then download Orbited from the <a href="http://cheeseshop.python.org/pypi" title="Python Package Index : Home">cheeseshop</a> repository.</p>
+        
+        <p>If you already have setuptools installed, then you should have the easy_install script. In this case, just run <tt>easy_install orbited</tt> and it will download and install the daemon.</p>
+      </li>
+    </ol>
+    
+    <p>At this point you’re done. Orbited is on your system and ready for use. You can start it up by executing <tt>orbited</tt> in a terminal window.</p>
+  </div>
+  
+  <div id="osx" class="section">
+    <h2>OS X</h2>
+    <p>There are only three steps to get orbit working on OS X: Install Python 2.5, install pyevent, then install Orbited.</p>
+    
+    <ol>
+      <li>
+        <h3>Python</h3>
+        <p>On OS X 10.5 Leopard, Python 2.5 is already installed, so skip this step.</p>
+        
+        <p>Python is an open-source interpreted dynamic language. Although the Orbited code-base will run fine on Python 2.4, there is no pyevent installer for Python 2.4, only Python 2.5. Therefore, to simplify the installation of pyevent, this tutorial assumes you will be using Python 2.5. If you don’t already have it installed, visit <a href="http://python.org/download">python.org/download</a> or simply download the <a href="http://www.python.org/ftp/python/2.5.1/python-2.5.1-macosx.dmg">Python 2.5.1 Universal OS X Installer</a> directly and run it.</p>
+      </li>
+      <li>
+        <h3>pyevent</h3>
+        <p>pyevent is a Python interface to the popular libevent library. It allows for fast, asynchronous network I/O that scales well. libevent will choose the best possible polling method available on your system. To install pyevent download the <a href="http://pyevent.googlecode.com/files/pyevent-0.3-fat.dmg">OS X pyevent Universal Python 2.5 Installer</a> and run it.</p>
+      </li>
+      <li>
+        <h3>Orbited</h3>        
+        <p>The third step is to install the Orbit Event Daemon itself, which first requires setuptools. On OS X 10.5 Leopard, setuptools is already installed, so if you are using Leopard, or if you already otherwise have setuptools installed, just open up a terminal, and run <tt>easy_install orbited</tt>, and you’re done.  On earlier versions of OS X, install setuptools and Orbited in one step using the bootstrap script. Control-click and save <a href="http://peak.telecommunity.com/dist/ez_setup.py">ez_setup.py</a> to your hard drive, then in a terminal window navigate to its containing folder and execute <tt>python ez_setup.py orbited</tt> to begin the install process. This will download setuptools if you don’t already have it, and then download and install Orbited from the <a href="http://cheeseshop.python.org/pypi" title="Python Package Index : Home">cheeseshop</a> repository.</p>
+      </li>
+    </ol>
+    
+    <p>At this point you’re done. Orbited is on your system and ready for use. You can start it up by executing <tt>orbited</tt> in a terminal window.</p>
+  </div>
+</body>
+</html>

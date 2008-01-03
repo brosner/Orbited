@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CherryChat</title>
+    <link rel="stylesheet" href="chat.css">
+    <script src="basicchat.js"></script>
+  </head>
+  <body>
+    <input type="text" id="nickname">
+    <input type="button" value="nickname" onclick="connect();">
+    <div id="box"></div>
+    <input type="text" id="chat">
+    <input type="submit" value="chat" onclick="send_msg();">
+    
+    <!--This iframe recieves orbit to browser events.-->
+    <iframe id="events"></iframe>
+  </body>
+</html>

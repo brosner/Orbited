@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Orbited Livehelp</title>
+  <link rel="stylesheet" href="chat.css" media="screen" title="pretty colors">
+  <script src="jquery.js"></script>
+  <script src="/_/orbited.js"></script>
+  <script src="chat.js"></script>
+  <script src="lconfig.js"></script>
+  <script src="mirc_colorize.js"></script>
+  <script src="tabcompletion.js"></script>
+  <script>
+    ENTER_KEY = 13
+    TAB_KEY = 9
+    
+    $(document).ready(function(){
+      $('#nickname').focus();
+      
+      $('#nickname').keypress( function(e) {
+        var key = e.charCode || e.keyCode || 0
+        if (key == ENTER_KEY) {
+          connect();
+          $('#signin_popup, #absorb_clicks').hide();
+          $('#chatbox_input').focus();
+          return false;
+        };
+      });
+      
+      function complete (field, users) {
+        var selInfo = tc.selectionInfo(field);
+        var selStart = selInfo[0];
+        var selEnd = selInfo[1];
+        var selText = selInfo[2];
+        var prefix = tc.prefix(field.value, selStart);
+        var nextUser = tc.nextUser(prefix, selText, users);
+        var replacementText = nextUser.slice(prefix.length);
+        tc.replaceSelection(field, replacementText);
+      };
+      
+      $('#chatbox_input').keypress( function(e) {
+        var key = e.charCode || e.keyCode || 0
+        if (key == ENTER_KEY) {
+          chat();
+          return false;
+        } else if (key == TAB_KEY) {
+          complete(this, users);
+          return false;
+        };
+      });
+      
+      $(window).unload( function() {
+        quit();
+      })
+    });
+    window.onbeforeunload = function() {
+      return 'Are you sure you want to quit and lose the chat connection?';
+    };
+  </script>
+</head>
+<body>
+  <div class="chatbox">
+    <div id="signin_popup">
+      <h2>Sign in to the #orbited chat room.</h2>
+      <label for="nickname">Nickname:</label>
+  		<input type="text" name="nickname" id="nickname" maxlength="16" value="">
+    </div>
+    <div id="absorb_clicks" onclick=""></div>
+    <div class="left_column">
+      <div class="chathistory" id="chathistory">
+      </div>
+      <textarea name="message" class="chatbox_input" id="chatbox_input" rows="2" cols="50"></textarea>
+    </div>
+    <div class="user_list" id="user_list">
+    </div>
+  </div>
+</body>
+</html>

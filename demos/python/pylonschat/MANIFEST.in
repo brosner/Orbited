@@ -1,0 +1,2 @@
+recursive-include pylonschat/public *
+recursive-include pylonschat/templates *

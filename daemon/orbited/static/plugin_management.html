@@ -1,0 +1,30 @@
+<html>
+ <head>
+  <title>Manage Plugin</title>
+    <link rel=stylesheet href=/_/plugin_management.css>
+
+    <script src=/_/plugin_management.js></script>
+    <script src=/_/orbited.js></script>
+	<script src=/_/plugin.js></script>
+</head>
+<body onLoad="get('list',{}).success = getList;get('name',{}).success = getName;">
+<h1>
+	Orbited<span>Plugin</span>: <b id=name>Loading...</b>
+</h1>
+
+<div class=section>
+	<h4>Last Output <b id=flag>Loading...</b></h4>
+	<div id=output>
+	</div>
+</div>
+
+<div class=section>
+	<h4>Available Functions</h4>
+	<div id=functions>
+	Loading available functions...
+	</div>
+</div>
+
+
+ </body>
+</html>

@@ -1,0 +1,61 @@
+<html>
+ <head>
+  <title>Meekle.com - IRC Client</title>
+  <link rel="stylesheet" href="chat.css">
+  <script type="text/javascript" src="chat.js"></script>
+  <script type="text/javascript" src="mirc_colorize.js"></script>
+  <script type="text/javascript" src="config.js"></script>
+  <script>
+    function entsubchat(event) {
+        event = event || window.event;
+        if (event.keyCode == 13) {
+            chat();
+            return false;
+        }
+    }   
+    function entsubjoin(event) {
+        event = event || window.event;
+        if (event.keyCode == 13) {
+            astarta();
+            chatfield = document.getElementById('chat');
+            chatfield.focus();
+            return false;
+        }
+    }
+    function entsubjoinchannel(event) {
+        event = event || window.event;
+        if (event.keyCode == 13) {
+            joinChannel();
+            chatfield = document.getElementById('chat');
+            chatfield.focus();
+            return false;
+        }
+    }
+  </script>
+ </head>
+ <body>
+  <div id=maintop>
+   <input value='[ENTER NICKNAME]' type=text id=nickname
+        onkeypress="entsubjoin(event)"
+        onfocus="document.getElementById('nickname').value=''"
+        onblur="if (document.getElementById('nickname').value=='') {
+                    document.getElementById('nickname').value='[ENTER NICKNAME]'
+                }">
+   <div id=channel>Orbit IRC Client</div>
+  </div>
+  <div id="main">
+   <div id="side"></div>
+   <div id="box"></div>
+  </div>
+  <div id=mainbottom>
+   <input value='[ENTER CHANNEL]' type=text id=channelfield
+        onkeypress="entsubjoinchannel(event)"
+        onfocus="document.getElementById('channelfield').value=''"
+        onblur="if (document.getElementById('channelfield').value=='') {
+                    document.getElementById('channelfield').value='[ENTER NICKNAME]'
+                }">
+   <input type=text id=chat onkeypress="entsubchat(event)">
+  </div>
+  <iframe id="events"></iframe>
+ </body>
+</html>

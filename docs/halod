@@ -1,0 +1,77 @@
+HaloD -- Dynamic Load Balancing for Orbited
+
+HaloD is a daemon that performs dynamic load scaling for an orbited cluster. 
+
+Name
+
+HaloD comes from a combination of the terms "halo orbit" and "daemon". It is pronounced like the english word "hallowed" but "halo dee" is also an acceptable pronunciation.
+
+"A halo orbit is an orbit around a Lagrange point between two larger bodies. Because the orbit tends to be unstable stationkeeping is required to keep an object such as a satellite in this orbit" -- Wikipedia. 
+
+
+How it works
+
+HaloD accepts incoming connections from the orbited nodes. Whenever an orbited node starts, if configured to do so, it immediately opens a connection with the HaloD server. The HaloD server decides to either 1) Keep the node in reserve, or 2) Add the node to the active cluster. 
+
+Browsers and Orbited clients connect to the cluster by connecting to the HaloD machine. HaloD will expose N ports to browsers and N ports to Orbited Clients. 
+
+Assuming for a moment that there is a max of 24 nodes, so N is 24. For the first node, no matter of the 24 ports you connect to HaloD on, the packets will be routed to the one (and only) orbited node. So there are 24 routes to a single orbited node. When a second node is added, 12 of the routes are now directed at the second node. When a third node is added, 1/3 of the routes are moved to the third node. The formula to determine which routes are moved is as follows: 
+
+Setup
+
+    Assign an id from 1 to N to each route.
+    
+Adding a new node
+
+    1)The new node is given an id of M + 1 where M is the largest id of an existing node (if no nodes are present then M is 0)
+    2) If no other nodes exist, all N routes are assigned to the new node
+Otherwise, 
+    3) Sort the nodes by number of routes assigned (k), and secondly by node id
+    4)Moving in descending order down the list, move assignment of the highest route id for the given node to the new node until floor(N / (M + 1)) routes have been reassigned. 
+    5) If this quota hasn't been met but the list has been compeltely traversed, then start at the top and repeat the process (step 4)
+    6) For all routes reassigned, send a 'route moved' message to each route's former orbited node. The orbited node will issue a reconnect event to any users connected via that route if necessary. (It is necessary for the Iframe transport, but not for the XHR transport. For XHr just close all open connections)
+
+Progression of Routes as Nodes are added
+
+1 Node:
+1 - 24
+
+2Nodes:
+1 - 12 || 13 - 24
+
+3 Nodes:
+1 - 8 || 13 - 20 || 9 - 12, 21 - 24
+
+4 Nodes:
+1 - 6 || 13 - 18 || 9 - 12, 21-22 || 7-8, 19-20, 23-24
+
+5 Nodes:
+1 - 5 || 13 - 17 || 9 - 12, 22 || 7-8, 19-20, 23 || 6, 18, 22, 24
+
+6 Nodes:
+1 - 4 || 13 - 16 || 9 - 12 || 7-8, 19-20 || 6, 18, 22, 24 || 5, 17, 22, 23
+
+7 Nodes:
+1 - 3 || 13 - 15 || 9 - 11 || 7-8, 19-20 || 6, 18, 22, 24 || 5, 17, 22, 23 || 4, 16, 12
+
+8 Nodes:
+1, 2, 3 || 13, 14, 15 || 9, 10, 11 || 7, 8, 19 || 6, 18, 22 || 5, 17, 22 || 4, 16, 12 || 20, 24, 23
+
+
+Failover
+
+If HaloD loses connection with an orbited node and is not able to immediately re-establish connection, then it reassigns all routes from that node to a failover node. HaloD always keeps at least one failover node in commision if possible. 
+
+If no failover nodes are available, then halod reassigns the node with the highest id (node M) to replace the failed node, then uses a reverse of the route reassignment process to reassign all former node M routes to the appropriate orbited nodes given that we now have M-1 total nodes.
+
+Note that the client-side orbited implementation (javascript) needs to support automatic reconnecting if the connection is lost, with a suitable retry.
+
+Technology
+http://woozle.org/~neale/src/ipqueue/ -- a python library for rewriting packets in linux.
+http://www.linuxjournal.com/article/7184 -- writing a firewall in c with netfilter
+
+Implementation
+
+HaloD needs to be able to recieve connections from the orbited nodes, and also to connect to the orbited nodes on the admin port to send them notifications as routes change. This sort of interaction is higher level than packet interception, so besides netfilter or an equivalent, the daemon needs to utilize a network library such as libevent.
+
+HaloD should keep a table mapping ports to nodes. It should just lookup the appropriate destination, and rewrite the packet.

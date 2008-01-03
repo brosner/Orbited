@@ -1,0 +1,59 @@
+a:link, a:visited {
+    text-decoration:none;
+    color:blue;
+}
+
+a:hover {
+    color:red;
+}
+
+body {
+    font-family: sans-serif;
+}
+
+h1 span{
+    color: #888;
+}
+
+.section {
+    margin: 10px;
+    border: 2px solid #eee;
+}
+
+.section h4 {
+    background-color: #eee;
+    margin: 0px;
+    padding:2px;
+}
+
+.heading td {
+    background-color: #888;
+    color: white;
+    font-weight:bold;
+}
+
+.plugin_info {
+    display:none;
+    margin-left:1em;
+    font-size:80%;
+}
+
+.canvas_holder {
+    border:1px solid black;
+}
+
+.canvas_label {
+    text-align:center;
+    background:gray;
+    color:white;
+    font-size:80%;
+    -moz-border-radius:5%;
+    width:100px;
+    position:relative;
+    top:-65px;
+    left:275px;
+    filter:alpha(opacity=50);
+    -moz-opacity:0.5;
+    -khtml-opacity: 0.5;
+    opacity: 0.5;
+}

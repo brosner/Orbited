@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PylonsChat</title>
+    <!--Import both the css stylesheet and the javascript.  Notice that
+        orbited.js is a static file being served by Orbited itself.
+    -->
+    <script src="/_/orbited.js"></script>
+    ${h.stylesheet_link_tag('chat.css')}
+    ${h.javascript_include_tag('chat.js')}
+  </head>
+  <body>
+    <!--This text box and submit button is for the user's nickname.
+         
+        Pressing submit will connect to Orbited using the best transport for
+        this browser, and then send a join message to the chat application.
+    -->
+    <input type="text" id="nickname">
+    <input type="button" value="nickname" onclick="connect();">
+    
+    <!--This div will contain the actual content of the chat.-->
+    <div id="box"></div>
+    
+    <!--This text box and submit button accept chat messages.-->
+    <input type="text" id="chat">
+    <input type="submit" value="chat" onclick="send_msg();">
+  </body>
+</html>

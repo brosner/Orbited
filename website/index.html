@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+	<meta name="generator" content="TextMate http://macromates.com/">
+	<meta name="author" content="Michael Carter and Jacob Rus">
+	
+  <!-- Navigational metadata (accessibility) -->
+  <link rel="top"      href="./index.html" title="Homepage">
+  <link rel="up"       href="./index.html" title="Up">
+  <link rel="first"    href="./index.html" title="First page">
+  <link rel="previous" href="./news.html" title="Previous page">
+  <link rel="next"     href="./download.html" title="Next page">
+  <link rel="last"     href="./news.html" title="Last page">
+  <link rel="toc"      href="./index.html" title="Table of contents">
+  <link rel="index"    href="./index.html" title="Site map">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/prosimii-screen.css" media="screen, tv, projection" title="Prosmii">
+  <link rel="stylesheet alternative" href="css/prosimii-print.css" media="screen" title="Print Preview">
+  <link rel="stylesheet" href="css/prosimii-print.css" media="print">
+  
+  <title>Orbited: The Orbit Event Daemon</title>
+</head>
+<body>
+  <!-- For non-visual user agents: -->
+  <div id="top"><a href="#main-copy" class="doNotDisplay doNotPrint">Skip to main content.</a></div>
+  
+  <!-- ===== Header ===== -->
+  <div id="header">
+
+    <div class="midHeader">
+      <h1 class="headerTitle" title="Orbited: Scaling Comet Applications"><img src="images/orbited-futura-brush.png" width="350" height="100" alt="Orbited: Scaling Comet Applications"></h1>
+
+      <!-- <br class="doNotDisplay doNotPrint">
+      <div class="headerLinks">
+        <span class="doNotDisplay">Tools:</span>
+        <a href="irc://irc.freenode.net/#orbited">#orbited IRC channel</a>
+        <span class="doNotDisplay">|</span>
+        <a style="cursor: help;" title="Thanks to CSS, this page is already printer friendly!">printer-friendly version «</a>
+      </div> -->
+    </div>
+
+    <div class="subHeader">
+      <span class="doNotDisplay">Navigation:</span>
+      <a href="index.html">Home</a> |
+      <a href="download.html">Download</a> |
+      <a href="demos.html">Live Demos</a> |
+      <a href="blog">Blog</a> |
+      <a href="docs.html">Documentation</a> |
+      <a href="tutorials.html">Tutorials</a> |
+      <a href="community.html">Community</a> |
+      <a href="projects.html">Projects</a> |
+      <a href="about.html">About</a>
+    </div>
+  </div>
+
+  <!-- ===== Main Copy ===== -->
+  <div id="main-copy">
+    <div class="rowOfBoxes">
+      <div class="twoThirds noBorderOnLeft">
+        <h1>Welcome to the Orbit Event Daemon Homepage</h1>
+        <p>Orbited is an HTTP daemon that is optimized for long-lasting comet connections. It is designed to be easily integrated with new and existing applications. Orbited allows you to write real-time web applications, such as a chat room or instant messaging client, without using any external plugins like Flash or Java. </p>
+
+        <p>Examples of other applications that use comet-like technology are <a href="http://meebo.com">Meebo</a> and <a href="http://mail.google.com">Gmail’s</a> embedded “talk” chatting functionality.</p> 
+      </div>
+
+      <div class="oneThird">
+        <h1>Latest News</h1>
+
+        <p><a href="./download.html" class="newsHeading">Orbited 0.3.0 Released</a></p>
+        <p class="newsDate">27 Dec 2007</p>
+        <p class="newsSummary">The Orbit Event Daemon 0.3.0 has been released under the MIT license as experimental software. See <a href="http://www.orbited.org/blog/2007/12/announcing-orbited-030/" title="Orbited Blog – Announcing Orbited 0.3.0">here</a> for details.</p>
+        
+        
+        <p><a href="./download.html" class="newsHeading">New Django + Orbited Tutorial</a></p>
+        <p class="newsDate">26 Dec 2007</p>
+        <p class="newsSummary">Arena Albionu has just written a great Django + Orbited tutorial that is making its rounds on reddit and ajaxian</p>
+        
+        
+
+        <div class="more"><a href="./blog/">More News »</a></div>
+        
+        <p class="filler"><!-- Filler paragraph to extend left vertical line --></p>
+      </div>
+    </div>
+
+    <div class="rowOfBoxes dividingBorderAbove">
+      <div class="quarter noBorderOnLeft">
+        <h1>Simple</h1>
+        <p>Orbited is designed to follow the database connector model of development, isolating developers from comet-specific details. Just import the simple client API to begin dispatching events from a server application to the browser.</p>
+      </div>
+
+      <div class="quarter">
+        <h1>Scalable</h1>
+        <p>Orbited scales up. It's built on top of the lightning quick <a href="http://monkey.org/~provos/libevent/" title="libevent">libevent</a> I/O library. Orbited scales out. It uses the same architecture as <a href="http://www.danga.com/memcached">memcached</a>: each node is unaware of its peers allowing for share-nothing, linear scaling. And multiple nodes can fail without bringing down the system.</p>
+        <p class="filler"><!-- Filler para to extend left vertical line --></p>
+      </div>
+
+      <div class="quarter">
+        <h1>Cross-Platform</h1>
+        <p>Orbited is written in <a href="http://python.org/" title="Python Programming Language - Official Website">Python</a> and is based on the <a href="http://monkey.org/~provos/libevent/" title="libevent">libevent</a> wrapper known as <a href="http://code.google.com/p/pyevent/" title="pyevent - Google Code">pyevent</a>. Python, libevent, and pyevent run on all major operating systems including Linux, Solaris, Windows, and OS X. Therefore Orbited can be deployed anywhere.</p>
+      </div>
+
+      <div class="quarter">
+        <h1>Open Source</h1>
+        <p>Orbited is released under the permissive open-source MIT License, which allows anyone to use, modify, and redistribute the code.  It can easily be integrated into both <a href="http://en.wikipedia.org/wiki/LAMP_%28software_bundle%29" title="LAMP - Wikipedia">LAMP-stack</a> web applications, and <a href="http://en.wikipedia.org/wiki/Enterprise_software" title="Enterprise software - Wikipedia, the free encyclopedia">enterprise</a> solutions, with client libraries for every major web programming language.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Footer ===== -->
+  <div id="footer">
+    <span class="doNotPrint">Orbited<br>©2007 Michael Carter</span>
+  </div>
+</body>
+</html>

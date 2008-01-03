@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <title>Orbited: Using Ruby With Orbited Tutorial</title>
+  <link rel="stylesheet" href="../css/tutorials_common.css">
+</head>
+<body>
+  <h1>Using Ruby with Orbited</h1>
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#tutorial">Tutorial</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>    
+    </ul>
+  </div>
+  
+  <div id="introduction">
+    <h2>Introduction</h2>
+    <p>This tutorial will demonstrate how the Orbited client API interacts with the Orbited daemon. The great thing about Ruby is the interactive shell, and Orbited is no special case. By the end of this tutorial you will have sent real-time events from the interactive Ruby shell to specific browser windows.</p>
+  </div>
+  
+  <div id="prerequisities">
+    <h2>Prerequisites</h2>
+    <ol>
+      <li>
+        <h3>Orbited</h3>
+        <p>This tutorial assumes you have already installed Orbited. If you haven’t then check out the tutorial on <a href="installation.html">Installing Orbited</a>.</p>
+      </li>
+      <li>
+        <h3>JSON</h3>
+        <p>The ruby-orbited client requires the json gem. This demo doesn’t actually deal with JSON, but we still need to satisfy the dependancy. You must install Ruby gems first, then you can execute the command <tt>gem install json</tt> to download and install the json gem.</p>
+      </li>        
+      <li>
+        <h3>ruby-orbited</h3>
+        <p>ruby-orbited is a Ruby implementation of the client-side orbit protocol. This Orbited client can be downloaded: <a href="../downloads/ruby-orbited.rb">ruby-orbited.rb</a>. Right-click on the link and select “save as” to save the file to an empty directory <tt>orbitedtest</tt>.
+      </li>
+    </ol>
+  </div>
+  
+  <div id="tutorial">
+    <h2>Tutorial</h2>
+    <p>First off, we need to start up the Orbited daemon. This can be done by running the command <tt>orbited</tt> in a console or command window. You should see a note that a configuration file wasn’t found. Orbited looks for the default config file <tt>orbited.cfg</tt> in the directory where you run the command. You can also specify a config file as the first argument when running the daemon. The console output should look like this (with a few more messages):</p>
+    
+    <pre><code class="console">orbited.cfg could not be found. Using default configuration
+2007-10-20 05:12:45,705 - Router - INFO - register_static, /_/admin_screen/static/, [...]
+2007-10-20 05:12:45,774 - OrbitedDaemon - INFO - Listening on port 9000</code></pre>
+
+    <p>This indicates that the Orbited daemon is listening for incoming HTTP connections on port 8000 and incoming orbit connections on port 9000.</p>
+    
+    <p>Now open a browser window and visit the URL <a href="http://localhost:8000/_/about">http://localhost:8000/_/about</a>. This page should display something similar to the following:</p>
+    
+    <div class="browser">
+      <h1>Orbited 0.1.3</h1>
+      Python 2.4.4 (#71, Oct 18 2006, 08:34:43)
+      [MSC v.1310 32 bit (Intel)]
+    </div>
+
+    <p>This indicates that you have successfully made contact with the Orbited server. Now point your browser to the URL <a href="http://localhost:8000/demo?user=user&amp;session=0&amp;transport=basic">http://localhost:8000/demo?user=user&amp;session=0&amp;transport=basic</a>. This page will seem to hang and you’ll see a Loading message in your browser’s status. If you visited the URL in a browser window that had a previous page, you may still see the contents of that previous page. Don’t worry though, this is normal behavior.</p>
+
+    <p> The next step is to open an interactive Ruby shell by typing the command <tt>irb</tt>. Make sure you are in the directory <tt>orbitedtest</tt> before entering the interactive shell.</p>      
+      
+    <pre><code class="ruby_interpreter">irb(main):001:0> require "ruby-orbited"
+=> true
+irb(main):002:0> client = SimpleOrbit::Client.new("localhost", 9000)
+=> #&lt;SimpleOrbit::Client:0x2e195a4 @addr="localhost", @connected=false, @socket=
+nil, @port=9000, @id=0>
+irb(main):003:0> user_key = "user, 0, /demo"
+=> "user, 0, /demo"
+irb(main):004:0> client.connect()
+=> #&lt;TCPSocket:0x2e179e8>
+irb(main):005:0> client.event([ user_key ], "Hello from Ruby!&lt;br>", false)
+=> "Success\r\nid: 1\r\n\r\n"
+</code></pre>
+    
+    <p>The first two lines require the Orbited client API and create a client object. The third line is the user key we use to identify the browser window we want to communicate with. If you recall, we accessed <nobr><tt>/demo?user=user&amp;session=0&amp;transport=basic</tt></nobr> This indicates that the location to which we are sending is <tt>/demo</tt>, the username is <tt>user</tt>, and the session key is <tt>0</tt>. Therefore the unique key identifying that browser window is <tt>"user, 0, /demo"</tt>. The last line is where we actually send the event. The client.event function takes 2 arguments and a third optional argument. The first argument is a list of unique user keys that determine the recipients of the event. The second argument is the event data itself, and the third argument which we specify as false determines wether we wish to encode the data in the JSON format. We want to send raw HTML so we don’t encode the data.</p>
+    
+    <p>At this point you can try sending events to user keys that you know don’t exist and see what sort of response you get. You can also send events to multiple open browsers simply by including each recipient user key in the first argument to the event function.</p>
+  </div>
+  
+  <div id="conclusion">
+    <h2>Conclusion</h2>
+    <p>Now you have some idea of how orbit works. Granted, most applications will need interaction more complex then raw HTML. The main use case of Orbited is to send data that is interpreted by JavaScript. Then JavaScript can do the appropriate action based on the contents of the event. A good place to go from here is the <a href="railschat.html">RailsChat Tutorial</a>. It will show you how to weave Ruby, JavaScript, and Orbited together into a meaningful application.</p>
+  </div>
+</body>
+</html>

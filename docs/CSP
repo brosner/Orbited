@@ -1,0 +1,271 @@
+# CSP: Comet Session Protocol
+
+TOC
+    Introduction
+    Terminology
+    CSP Model    
+    Comet transports
+        Connection Identifier
+        Message Encoding
+        JavaScript API
+            setCallback(callbackFunction)
+            connect(server, port)
+            close
+        Transport list
+    CSP Communication
+        Client Request
+        Server Response
+        Server Push
+    CSP Sessions
+        Client Requests
+            CONNECT
+            AUTH
+            PING
+            PONG
+            RESEND
+            EOF
+        Server Responses
+            OK
+            ERR
+        Server Push
+            WELCOME
+            UNWELCOME
+            PING
+            PONG
+            EOF
+            CHANGE
+        Example Session
+
+## Introduction
+
+The purpose of Comet Session Protocol (CSP) is to define a standard method of communication between Comet servers and clients. CSP is primarily intended for but not limited to web browsers communicating over HTTP. In order to fully implement CSP, two obstacles inherent to HTTP must be overcome: 1) HTTP is a stateless protocol, and 2) HTTP is bound by the request–response model so asynchronous server-push is impossible. 
+
+A loosely related set of technologies have been employed for the past decade as a means to work around the above problems. First, the concept of HTTP sessions, generally maintained by placing the session key in an HTTP cookie or persisting the information as part of the query string across requests, allows applications built on top of HTTP to maintain a state between requests.
+
+The second technology is known as Comet and provides a method of server push. These methods include long polling and iframe streaming as a means to send data from the server to the client in the absence of a client-originated request. These techniques have been employed as far back as Netscape 1 with the multipart/x-mixed-replace header for web cam support, but only recently have they been related under a single name, Comet.
+
+## Terminology    
+    
+    Comet: Asynchronous communication between the server and client. Also known as server-push or reverse ajax.
+    
+    server: Typically a HTTP 1.x server that also understands CSP protocol. Unlike traditional HTTP servers, Comet servers are normally optimized for long-lasting connections
+    
+    client: Typically an HMTL4+ compliant web browser that supports JavaScript and understands CSP
+    
+    request: An HTTP request, 
+    
+    Comet message: A message pushed from the Comet server to the Comet client. This
+
+## CSP Model
+
+Comet Session Protocol is a multi-level design. The bottom-most level is the Comet transport which maintains an active connection for server push. This document only defines the interface that the Comet transport must expose, not the actual mechanism by which data is transported. That is left to the Comet transport documents. A Comet transport must make a best-effort attempt to ensure continual connectivity until it is explicitly closed.
+
+The session layer sits directly above the Comet transport and utilizes a combination of server push, via the Comet transport, and traditional client-request–server-response for all communication. The session layer's purpose is to provide infrastructure for authentication and to guarantee message delivery and ordering as long as the connection persists.
+
+The third layer is left unspecified by this document, and could be any number of protocols or applications. A publish–subscribe protocol, for example, could be built on top of CSP.
+
+Each level in the CSP model reserves a number of message types. For instance, the Comet transport reserves the RECONNECT message type. All RECONNECT messages will be dealt with by the Comet transport. WELCOME messages will be passed through by the Comet transport level to be dealt with by the session layer. PAYLOAD messages, as well as any custom messages, will be passed through the session layer and to the application or protocol sitting above CSP.
+
+### Client request
+
+Typically
+
+## CSP transports
+
+CSP utilizes a number of Comet transports as a means of delivering asynchronous messages from the Server to the client. Each transport is defined by two characteristics: 1) connection identification, and 2) message encoding. All transports, if intended for communication with a web browser, must expose a standard JavaScript API.
+
+The purpose of the Comet transport definitions are primarily for the benefit of server developers. Sample JavaScript implementations of these transports are recommended to be included with the transport definitions themselves, as applicable.
+
+### Reserved Server Push Messages
+
+#### RECONNECT
+
+If a client receives a RECONNECT message, then it should close and re-open the connection on which it receives the message. One typical use of this, in the case of various streaming transports, would be to keep a connection open no longer than 30 seconds in an effort to maintain firewall immunity. A polling or long polling transport will need a reconnect message with each set of messages delivered, though they may be implied as to conserved bandwidth.
+
+
+### Connection Identifier
+
+A connection identifier is an 8-byte alphanumeric string
+
+### Message Encoding
+
+Messages are encoded in the JSON format. Additional or alternative formats may be specified but they must directly map to JSON.
+
+### JavaScript API
+
+A JavaScript transport object must expose connect, setCallback, and close methods.
+
+#### setCallback(callbackFunction)
+
+This must be called before connect, but may be called an arbitrary number of times subsequently. This function takes a single argument, a function to which event payloads should be passed.
+
+#### connect(server, port)
+
+The connect function takes two arguments, the server address and the server port. If the port and server are not specified, then the default port from location.port and the default address from document.domain will be used. Either both port and address must be specified, or neither.
+
+#### close()
+
+The close function takes no arguments and will close the connection. If the connection is already closed, then nothing happens.
+
+### Transport list
+
+A non-comprehensive list of these transports are as follows:
+
+    - HTTP XHR Polling
+    - HTTP XHR Long Polling
+    - HTTP XHR streaming
+    - HTTP frame streaming
+    - SSE
+    - JSONP Polling
+    - JSONP Long-Polling
+    - FLEX
+    - RAW
+
+## CSP Sessions
+
+As noted in the CSP Model, there are two modes of communication: 1) client-request—Server-response and 2) server push. There exists no concept of client push because we attempt to closely model the capabilities of current browser technology. Due to our model, any client-originated message will be explicitly acknowledged, but server-originated messages are assumed successful unless the client explicitly indicates otherwise. 
+
+Due to connection limits in modern browsers, we can never keep more than a single pinging request open at any time. Generally only two connections to the same domain are allowed, and one of those connections will be used by the transport. Any client originated message must therefore be responded to immediately by the server. Two exceptions are AUTH and CONNECT. 
+
+### Client Requests
+
+#### CONNECT
+
+Arguments: 
+    None
+
+The CONNECT request notifies the server that the client wishes to create a CSP session. this request contains no additional arguments.
+
+If the the request is successful, then the server responds with an OK and includes session identifier. The client is now free to open a Comet connection using the provided session identifier as the Comet connection identifier.
+
+If the request is unsuccessful, then the server responds with an ERR and includes the error message.
+
+#### AUTH
+
+Arguments
+    appToken    
+    (or)
+    userToken (and)
+    passPhrase
+    
+After receiving a WELCOME message, the client is free to send an AUTH request. This request can either provide a user token and passphrase, or provide an application token. 
+
+The AUTH request is not strictly necessary, but it allows external applications to provide cookie based authentication or allows the server to implement user/pass based authentication. 
+
+#### PING
+
+Arguments:
+    id
+    
+The PING request requires the an immediate response of OK from the server, but also requires an immediate Comet message PONG. The ping argument is a session-unique PING identifier which will be included in the PONG response.
+
+If PONG is not received within XX seconds then the Comet connection is presumed dead. In this case, the client will call close and connect on the comet transport.
+
+If Comet connection cannot be opened in YY seconds, then the CSP session is considered timed out.
+
+#### PONG
+
+Arguments:
+    id
+    
+When the client receives a Comet message PING, it must immediately send a PONG request to the server. The id argument is the value accompanying the PING message.
+    
+
+#### RESEND
+
+Arguments:
+    startId
+    endId
+    (or)
+    lastId
+    
+Messages are always presumed to be sent in order according to message ids. If a message is received out of order, a RESEND request is sent to the server indicating the range of messages that were not received.
+
+The server will then reissue messages as indicated by the range arguments. Messages between the startId and endId are the range; startId is included in this range but endId is not. (I.E. with a start of 6 and an end of 10, the messages [6,7,8,9] would be sent, but not 10.)
+
+If the range is unknown, then the client can simply send lastId, which is the id of the last message successfully received. The server will resend all messages since the lastId.
+
+NOTE: servers are not required to hold more than XX messages, or any message for longer than YY seconds.
+
+
+#### EOF
+
+Arguments:
+    None
+    
+The EOF request indicates that the client is ending this CSP Session. Typically browsers will use the onUnload function to send an EOF message. If no EOF message is received upon departure of the client, then the client will not be considered gone until it misses the next PING request.
+
+
+### Server Response
+
+#### OK
+
+Arguments:
+    value
+
+Used as a generic success response to various client requests. value can contain arbitrary information.
+
+#### ERR
+
+Arguments:
+    msg
+
+Used as a generic error response to various client requests. msg can contain the full error message.
+
+### Server Push
+
+#### WELCOME
+
+The WELCOME message is sent when the client opens a valid Comet connection after calling CONNECT. The client may not send an AUTH request until it receives WELCOME from the server.
+
+#### UNWELCOME
+
+The UNWELCOME message is sent to the client after it opens a Comet connection that the server hasn't authorized via a CONNECT/OK request. If the client makes a valid CONNECT request, but waits longer than XX seconds to open the Comet connection, then the CSP Session id becomes invalid and the client will receive an UNWELCOME message.
+
+After the UNWELCOME message, the server will send an EOF.
+
+
+#### PING
+
+...
+
+
+#### PONG
+...
+
+#### EOF
+
+#### CHANGE
+
+
+When the client receives a CHANGE message, it must call close on its current transport and create a new transport as specified by the transportType argument. This message can often be used to accommodate changing situations, such as server load or required minimum latency. For instance, if a user isn't currently looking at a page that has an opened CSP connection, then it might make sense to use polling at a slow interval rather than long polling.
+
+
+### Example Session
+
+This is an example session from the client's perspective.
+
+1  JS App: CSP.connect("example.com", 80, appToken="arbitrary_app_session_id")
+2  Client: CONNECT (request)
+3  Server: OK, [ 'A4HLM50R', [ 'longpoll' ] ] (response)
+4  Client: Open Comet transport ['longpoll', ] to "example.com" on port 80 
+5  Server: [ [ 1, WELCOME ], ] (push)
+6  Client: AUTH, appToken="arbitrary_app_session_id"
+7  Server: OK, [] (response)
+8  Server: [ [ 2, PAYLOAD, [ 'arbitary', 'data'] ], ] (push)
+9  Server: [ [ 3, PING, 'ping_1' ], [ 4, PAYLOAD, [ 'more', 'arbitrary', 'data' ] ] ] (push)
+10 Client: PONG, id='ping_1' (request)
+11 Server: [ [ 5, CHANGE, [ 'polling', 30 ] ] ] (push)
+12 Client: Close comet transport 'longpoll'
+13 Client: Open comet transport [ 'poll', 30 ]
+14 Server: [ [ 7, PING, 'ping_2' ], [ 8, PAYLOAD, 'foo' ] ] (push)
+15 Client: PONG, id='ping_2' (request)
+17 Server: OK (response)
+16 Client: RESEND, startId=6, endId=7 (request)
+19 Server: OK (response)
+18 Server: [ [ 6, PAYLOAD, 'bar' ], [ 9, EOF ] ] (push)
+20 Client: Close comet transport
+
+Note the PAYLOAD message on line 8. This is an arbitrary message type that will be passed through to the instantiating layer (application or protocol.) Any unreserved message will be passed along.
+
+Note the PING on line 14. This PING is responded to even though message 6 is missing. The RESEND request is issued immediately after the OK response to the PONG

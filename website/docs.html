@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+	<meta name="generator" content="TextMate http://macromates.com/">
+	<meta name="author" content="Michael Carter and Jacob Rus">
+	
+  <!-- Navigational metadata (accessibility) -->
+  <link rel="top"      href="./index.html" title="Homepage">
+  <link rel="up"       href="./index.html" title="Up">
+  <link rel="first"    href="./index.html" title="First page">
+  <link rel="previous" href="./download.html" title="Previous page">
+  <link rel="next"     href="./tutorials.html" title="Next page">
+  <link rel="last"     href="./news.html" title="Last page">
+  <link rel="toc"      href="./index.html" title="Table of contents">
+  <link rel="index"    href="./index.html" title="Site map">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/docs.css">
+  <link rel="stylesheet" href="css/prosimii-screen-alt.css" media="screen" title="Prosimii (alternative)">
+  <link rel="stylesheet alternative" href="css/prosimii-print.css" media="screen" title="Print Preview">
+  <link rel="stylesheet" href="css/prosimii-print.css" media="print">
+
+  <title>Orbited: Documentation</title>
+</head>
+<body>
+  <!-- For non-visual user agents: -->
+  <div id="top"><a href="#main-copy" class="doNotDisplay doNotPrint">Skip to main content.</a></div>
+
+  <!-- ===== Header ===== -->
+  <div id="header">      
+    <div class="midHeader">
+      <h1 class="headerTitle" title="Orbited: Scaling Comet Applications"><img src="images/orbited-futura-brush.png" width="350" height="100" alt="Orbited: Scaling Comet Applications"></h1>
+
+      <!-- <br class="doNotDisplay doNotPrint">
+      <div class="headerLinks">
+        <span class="doNotDisplay">Tools:</span>
+        <a href="irc://irc.freenode.net/#orbited">#orbited IRC channel</a>
+        <span class="doNotDisplay">|</span>
+        <a style="cursor: help;" title="Thanks to CSS, this page is already printer friendly!">printer-friendly version «</a>
+      </div> -->
+    </div>
+    
+    <div class="subHeader">
+      <span class="doNotDisplay">Navigation:</span>
+      <a href="index.html">Home</a> |
+      <a href="download.html">Download</a> |
+      <a href="demos.html">Live Demos</a> |
+      <a href="blog">Blog</a> |
+      <a href="docs.html">Documentation</a> |
+      <a href="tutorials.html">Tutorials</a> |
+      <a href="community.html">Community</a> |
+      <a href="projects.html">Projects</a> |
+      <a href="about.html">About</a>
+    </div>
+  </div>
+
+  <!-- ===== Main Copy ===== -->
+  <div id="main-copy">
+    <div class=toc>
+      <h2>Table of contents</h2>      
+      <ul>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#configuration">Configuration</a></li>
+        <li><a href="#client_api">Client API</a></li>
+        <li><a href="#transports">Transports</a></li>
+        <li><a href="#scaling">Scaling</a></li>
+        <li><a href="#orbit_protocol">Orbit Protocol</a></li>
+      </ul>
+    </div>
+  
+    <div id="introduction">
+      <h2>Introduction</h2>
+      <p>Orbited is an event daemon that is optimized to support many long-lasting http connections for the purpose of comet, or http-push, communication. In plain english, Orbited allows you to send real-time events from your preferred programming language directly to the browser. The daemon runs besides your web application server. A user connects to the daemon waiting for an event, and when an event occurs, your web application forwards the event to the orbited deamon which relays it back to the browser. Orbited has only that purpose -- to relay events to the browser. Your application server handles any internal logic, static content, database access, etc. As such, Orbited can be easily plugged in to existing applications.</p>
+    </div>
+     
+    <div id="installation">
+      <h2>Installation</h2>
+      <p>Orbited requires pyevent 0.3 and python 2.5. For more information on installation please see the <a href="tutorials/installation.html">Installation Tutorial</a>.</p>
+    </div>
+    
+    <div id="configuration">
+      <h2>Configuration</h2>
+      <p>Orbited searches for an orbit.cfg file in the directory where you run the <tt>orbited</tt> command. If there is no orbit.cfg, the default configuration will be used.</p>
+
+      <pre><code class="orbit_config">[global]
+orbit.port = 9000
+http.port = 8000
+admin.enabled = 0
+proxy.enabled = 0
+proxy.keepalive = 0
+proxy.keepalive_default_timeout = 300
+log.enabled = 1
+
+[admin]
+admin.port = 9001
+
+[proxy]
+
+[log]
+log.access = screen
+log.error = screen
+log.event = screen</code></pre>
+
+      <p>A user supplied orbit.cfg file may override any of these options. Most developers will enable the Orbited proxy while they are creating the application. Here is a typical config file that enables the proxy.</p>
+
+      <pre><code class="orbit_config">[global]
+proxy.enabled = 0
+proxy.keepalive = 0
+
+[proxy]
+/static -> http://127.0.0.1:80 # All static content is served by apache on port 80
+/ -> http://127.0.0.1:4700 # The web app is running on port 4700
+      
+[log]
+log.access = screen, /var/log/orbited.access.log
+log.error = screen, /var/log/orbited.error.log
+log.event = screen</code></pre>
+    </div>
+    
+    <div id="client_api">
+      <h2>Client API</h2>
+      <p>Please see the <a href="tutorials.html">Tutorials</a> section to see how to use orbited with your preferred language.</p>
+    </div>
+    
+    <div id="transports">
+      <h2>Transports</h2>
+      <p>To be completed.</p>
+    </div>
+    
+    <div id="scaling">
+      <h2>Scaling</h2>
+      <p>To be completed.</p>
+    </div>      
+
+    <div id="orbit_protocol">
+      <h2>Orbit Protocol</h2>
+      Orbit Protocol is based on HTTP Protocol, but is much simpler. This is a fairly comprehensive example:
+      <h3>Orbit Request</h3>
+      <pre><code class="orbit_protocol">Orbit/1.0<b>\r\n</b>
+Action: Event<b>\r\n</b>
+Id: 45<b>\r\n</b>
+Recipient: (michael, 123, /event)<b>\r\n</b>
+Recipient: (jacob, 543, /event)<b>\r\n</b>
+Length: 10<b>\r\n</b>
+<b>\r\n</b>
+event text</code></pre>
+      <h3>Orbit Response -- Failure</h3>
+      <pre><code class="orbit_protocol">Status: Failure<b>\r\n</b>
+Id: 45<b>\r\n</b>
+Msg: One or more of the following recipients could not be reached: (michael, 123, /event)<b>\r\n</b>
+<b>\r\n</b></code></pre>
+      <h3>Orbit Response -- Success</h3>
+      <pre><code class="orbit_protocol">Success<b>\r\n</b>
+id: 45<b>\r\n</b>
+<b>\r\n</b></code></pre>
+    </div>
+    
+  </div>
+
+  <!-- ===== Footer ===== -->
+  <div id="footer">
+    <span class="doNotPrint">Orbited<br>©2007 Michael Carter</span>
+  </div>
+</body>
+</html>

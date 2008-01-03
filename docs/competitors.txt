@@ -1,0 +1,54 @@
+
+Open Source
+-----------
+
+**Python:**
+
+  - Cometd: <http://www.cometd.com/>
+    
+  - Orbited - <http://orbited.org/> (that’s us!)
+
+**Ruby:**
+
+  - Shooting Star: <http://rubyforge.org/projects/shooting-star/>
+    
+  - Juggernaut: <http://juggernaut.rubyforge.org/>
+
+**Perl:**
+
+  - Meteor: <http://meteorserver.org/>
+
+**C++:**
+
+  - Pushup: <http://pushup.causology.net/Pushup>
+
+**Java:**
+
+  - Pushlets: <http://www.pushlets.com/>
+    
+  - GlassFish: <https://glassfish.dev.java.net/>
+
+**Smalltalk:**
+
+  - Asteroid: <http://wiki.squeak.org/squeak/5851>
+
+**Erlang:**
+
+  - ErlyComet: <http://code.google.com/p/erlycomet/>
+
+Proprietary
+-----------
+
+
+**C:**
+
+  - Caplin Liberator: <http://www.caplin.com/?curcat_id=3&curart_id=36>
+    
+  - Virgil’s One: <http://one.virgil.nl/wps/portal>  
+
+**Java:**
+
+  - Lightstreamer: <http://www.lightstreamer.com/>
+
+
+

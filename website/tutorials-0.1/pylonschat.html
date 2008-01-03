@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="../css/tutorials_common.css">
+  <title>Orbited: PylonsChat Tutorial</title>    
+</head>
+<body>
+  <h1>PylonsChat - an Orbit tutorial</h1>
+  <div class="toc">
+    <h2>Table of contents</h2>
+    <ul>
+      <li><a href="#goal">Goal</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#python">Server-side Python</a></li>
+      <li><a href="#htmljs">HTML and JavaScript</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>
+      <li><a href="#source">Source code</a></li>
+    </ul>
+  </div>
+  
+  <div id="goal">
+    <h2>Goal</h2>
+    <p>The goal of this tutorial is to introduce you to Orbited and the Python Orbited client API, pyorbited. The tangible goal is to produce a simple web-based chat application. There will be one main “chatroom” where every user who signs on is placed. We won’t deal with authentication or presence (detecting if someone timed out or left.) These are all possible with Orbited but are outside the scope of this tutorial. Below is a screenshot of the end goal.</p>
+    
+    <img style="margin-left: 10em;"src="pylonschat.png" width="438" height="270" alt="PylonsChat">
+  </div>
+  
+  <div id="prerequisities">
+    <h2>Prerequisites</h2>
+    <ol>
+      <li>
+        <h3>Orbited</h3>
+        <p>This tutorial assumes you have already installed Orbited. If you haven’t then check out the tutorial on <a href="installation.html">Installing Orbited</a>.</p>
+      </li>
+      <li>
+        <h3>Pylons 0.9.6rc3+</h3>
+        <p>Pylons is a web application framework that helps you
+        build rich applications, using Python. To install Pylons simply run:</p>
+        
+        <pre><code class="commandline">easy_install
+        Pylons==0.9.6rc3</code></pre>
+	
+	<p>Installing Pylons with easy_install will install all of the
+	Pylons dependancies. There are many of them.</p>
+	
+      </li>
+      <li>
+        <h3>PyOrbited</h3>
+        <p>PyOrbited is a library of Python implementations of the Orbited client API. It currently consists of a basic socket-based implementation, a twisted implementation, and a pyevent/libevent implementation. For our purposes we only need the basic implementation, but all three come with PyOrbited. To install the library simply run:</p>
+        
+        <pre><code class="commandline">easy_install pyorbited</code></pre>
+        
+        <p>For more information about PyOrbited see the tutorial <a href="python_intro.html">Using Python with Orbited</a>.</p>
+      </li>
+    </ol>
+  </div>
+  
+  <div id="python">
+    <h2>Server-side Python, step by step</h2>
+    <p>This tutorial will keep the Python source as simple as possible, so the chat functionality will be bare-bones.</p>
+    
+    <p>To begin, we create a new Pylons application, and then change
+    directories into our new application directory, by running on the
+    command line:</p>
+
+    <pre><code class="commandline">paster create --template=pylons pylonschat
+cd pylonschat</code></pre>
+    
+    <p>Which creates a massive directory structure, populated with dozens of files.</p>
+    
+    <p>Next, we need to create the controller for our application, by running the controller-creator script:</p>
+
+    <pre><code class="commandline">paster controller chat</code></pre>
+    
+    <p>Next we want to add three more files to our <tt>pylonschat</tt> directory: <tt>/orbit.cfg</tt>, <tt>/pylonschat/public/stylesheets/chat.css</tt>, and <tt>/pylonschat/public/javascripts/chat.js</tt>.  We can leave all three empty for now.  Our <tt>pylonschat/</tt> directory should now look something like the following (broken into two columns to save vertical space; pink splotches represent files we care about):</p>
+
+    
+    <img src="pylonschat-directory.png" width="281" height="417" style='border:solid 1pt;' alt="Directory Structure">
+    
+    <p>The <tt>/pylonschat/controllers/chat.py</tt> file will contain the bulk of our code.  To begin, we import the simple orbit client:</p>
+    
+    <pre><code class="python">from pyorbited.simple import Client</code></pre>
+    
+    <p>Next, we populate chat controller with functions defining the
+    actions which will be called by our JavaScript, join and msg. We
+    will also create our orbit client and a list to hold our
+    users. user_keys is a simple helper function defined on the
+    controller which returns the list of users to which we will send
+    events:</p>
+
+    <pre><code class="python">import logging
+
+from pylonschat.lib.base import *
+
+log = logging.getLogger(__name__)
+
+class ChatController(BaseController):
+
+    orbit = Client()
+    users = []
+    
+    def _user_keys(self):
+        list = ["%s, %s, /pylonschat" % (user[0], str(user[1]))
+                for user in self.users]
+        return list
+    
+    def index(self):
+        return render('chat/index.html')
+
+    def join(self, user, session='0'):
+        if (user, session) not in self.users:
+            self.users.append((user, session))
+            self.orbit.event(self._user_keys(), '<b>%s joined</b>' % user)
+        return "ok."
+    
+    def msg(self, user, msg, id=None, session='0'):
+        self.orbit.event(self._user_keys(), '<b>%s</b> %s' % (user, msg))
+        return "ok."</code></pre>
+    
+    <p>The <tt>join</tt> function adds the user if he is not among those already logged in, and then sends an event to all users informing them of the newly-joined user.  The <tt>msg</tt> function simply passes along the message to every connected user.</p>
+
+    <p>It is worthwhile to look at the <tt>_user_keys</tt> helper function. The purpose of this function is to return a list of orbit keys that correspond to the users that are currently logged in. Each key is composed of three parts, the user id, the session id, and the location of the request. In our application we aren’t using sessions so every user is given the session id of ‘0’. The user id is simply the username we got from the join command, and the location we are choosing arbitrarily to be <tt>/pylonschat</tt>. Any valid HTTP location would work though. You’ll see this location again in the JavaScript.</p>
+    
+    <p>Finally, we add some routes to our
+    <tt>/pylonschat/config/routing.py</tt> file to map urls to the
+    actions in the ChatController. The first two routes are the ones
+    that we have added and the third is the standard route that will
+    be in the generated file. It is important that the new routes go
+    <i>before</i> the existing route.</p>
+    
+    <pre><code class="python">    map.connect('chat/join/:user/:id',
+                controller='chat', action='join')
+    map.connect('chat/msg/:user/:msg/:id',
+                controller='chat', action='msg')
+    
+    map.connect(':controller/:action/:id')</code></pre>
+    <p>We should also take a quick look at <tt>orbit.cfg</tt>. There is very little in this file as the default configuration is mostly fine.</p>
+    
+    <pre><code class="orbit_config">[global]
+proxy.enabled = 1
+proxy.keepalive = 0
+
+[proxy]
+/ -> http://127.0.0.1:5000</code></pre>
+    
+    <p>To avoid cross-domain scripting problems we will use the orbit
+  proxy to redirect all requests to our chat application. To
+  JavaScript the Orbited daemon and the PylonsChat application server will seem to be one and the same.</p>
+  </div>
+  
+  <div id="htmljs">
+    <h2>Client-side HTML and JavaScript, step by step</h2>
+    <h3>HTML</h3>
+    <p>The HTML for our chat example is very simple.  It consists of two form text fields with their associated buttons, a <tt>div</tt> called <tt>#box</tt>, into which the content of the chat will go, and a hidden <tt>iframe</tt> to accept events from the application.</p>
+    
+    <p>To begin the file (<tt>/pylonschat/template/chat/index.html</tt>), we need a doctype declaration, and a header, which links to a CSS stylesheet and the client-side JavaScript:</p>
+    
+    <pre><code class="html">&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+  "http://www.w3.org/TR/html4/strict.dtd"&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="Content-type" content="text/html; charset=utf-8"&gt;
+    &lt;title&gt;PylonsChat&lt;/title&gt;
+    &lt;link rel="stylesheet" href="/stylesheets/chat.css"&gt;
+    &lt;script src="javascripts/chat.js" type="text/javascript" charset="utf-8"&gt;&lt;/script&gt;
+  &lt;/head&gt;</code></pre>
+    
+    <p>Next, we include a text field and button for the nickname:</p>
+    
+    <pre><code class="html">  &lt;body&gt;
+    &lt;input type="text" id="nickname"&gt;
+    &lt;input type="button" value="nickname" name="nickname" onclick="connect();"&gt;</code></pre>
+    
+    <p>And then a <tt>div</tt> which can accept the actual chat content, followed by another text field and button for adding to the chat:</p>
+    
+    <code><pre>    &lt;div id="box"&gt;&lt;/div&gt;
+    
+    &lt;input type="text" id="chat"&gt;
+    &lt;input type="submit" value="chat" onClick="send_msg();"&gt;</pre></code>
+    
+    <p>Finally, we close with a hidden <tt>iframe</tt> element, which we will hide with CSS.  Chat events are fed into this <tt>iframe</tt> in the form of small scripts, which push content into the <tt>div</tt>.  And then finally we close out the remaining HTML elements:</p>
+    
+    <pre><code class="html">    &lt;iframe id="events"&gt;&lt;/iframe&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+    
+    <h3>CSS</h3>
+    <p>The CSS stylesheet for our chat page can style it however we like.  In this case, we keep things very simple, setting a few margins, and adding dashed blue borders around each displayed chat event:</p>
+    
+    <pre><code class="css">body {
+  margin-left:2em;
+}
+
+#box {
+  border: 1px solid black;
+  width: 80%;
+  margin: .5em auto .5em 0;
+  height: 10em;
+  overflow: scroll;
+}
+
+.event {
+  border: 1px dashed blue;
+  margin: .5em auto;
+  padding: .2em;
+  width: 90%;
+}</code></pre>
+    
+    <p>The only requirement is to hide the events <tt>iframe</tt>:</p>
+    
+    <pre><code class="css">#events {
+  display: none;
+}</code></pre>
+    
+    <h3>JavaScript</h3>
+    <p>The JavaScript is the meat of our client-side code. We are going to start with a little bit of boilerplate. We need a function that will create an XMLHttpRequest object no matter what browser we’re using. We also need to define the variable id. It will be used later in the tutorial. Its purpose is to keep Internet Explorer 6 from caching requests.</p>
+    
+    <pre><code class="javascript">id = 0;
+function createXMLHttpRequest() {
+  try { return new ActiveXObject("Msxml2.XMLHTTP"); } catch (e) {}
+  try { return new ActiveXObject("Microsoft.XMLHTTP"); } catch (e) {}
+  try { return new XMLHttpRequest(); } catch(e) {}
+  return null;
+}</code></pre>
+    
+    <p>The first bit of real code we need will handle connection. After someone types in their nickname we need to do two things. 1) Initialized the Orbited event stream. In this case we will use the iframe transport, so this entails connecting the hidden <tt>iframe</tt> to the Orbited server at the PylonsChat location. 2) We need to let the chat server know that we are now connected so we receive any future messages. We do this by making a <tt>GET</tt> request to the server and we include our nickname.</p>
+    
+    <p>We’ll break this up into two functions. The <tt>connect</tt> function will take care of the iframe and the <tt>join</tt> function will send the request to the chat server. We’ll have the connect function call the join function instead of the other way around because we want to first connect the iframe before we alert the server so we don’t miss any messages.</p>
+    
+    <pre><code class="javascript">function connect() {
+  name = document.getElementById('nickname').value
+  e = document.getElementById('events')
+  e.src='/pylonschat|' + name + ',0,iframe'
+  join(name);
+}
+
+function join(user) {
+  xmlhttp = createXMLHttpRequest();
+  xmlhttp.open("GET", "chat/join/" + user, true)
+  xmlhttp.send(null);
+}</code></pre>
+    
+    <p>Next, we want to be able to see any events that are sent. If you recall the server code, we’ll be receiving events in the form of simple JavaScript strings. We just want to stick each string in its own div and put that div in our main chat_box div. The CSS will take care of the formatting.</p>
+    
+    <p>It is important to note at this point that the iframe transport depends on the parent window having a function named event. Whenever an event is sent, it is sent in the form <tt>&lt;script&gt; window.parent.event(event_data);&lt;/script&gt;</tt>. This means that its our job to actually define the event function. We’ll use this function to perform the afore mentioned dom manipulation. That is, we’ll have event actually put the text into the appropriate divs.</p>
+    
+    <pre><code class="javascript">function event(data) {
+  chat_box = document.getElementById('box')
+  div = window.parent.document.createElement('div')
+  div.className = "event"
+  div.innerHTML = data
+  chat_box.appendChild(div)
+  chat_box.scrollTop = chat_box.scrollHeight;
+}</code></pre>
+    
+    <p>The final step is to provide a way to send messages. Sending a message is a matter of contacting the chat server to call the msg function. We need to provide the message text as well as the nickname of the sender. Also, remember how we defined the variable id? We want to increment id every time we send a message so that every call to the msg function looks different, event if we send the same message twice. If we don’t do this, then some browsers such as Internet Explorer 6 will not send the message a second time because it will have cached the result of the first request. We don’t actually care about the results of these requests though, rather we are interested in the effect of the request—to dispatch an orbit event. So having the cached result does us no good if the effect doesn’t also happen. Here is the code we need to send a message.</p>
+    
+    <pre><code class="javascript">function send_msg() {
+  id = id + 1
+  xmlhttp = createXMLHttpRequest();
+  msg = document.getElementById('chat').value
+  nickname = document.getElementById('nickname').value
+  xmlhttp.open("GET", "chat/msg/" + nickname + "/" + msg + "/" + id)
+  xmlhttp.send(null);
+}</code></pre>
+    
+    <p>And with that we are finished with the JavaScript side of our chat application. Everything else should be in place at this point, so you can open two terminals to the root <tt>pylons</tt> directory, in one starting Orbited:</p>
+    
+    <pre><code class="commandline">orbited</code></pre>
+    
+    <p>And in the other running the PylonsChat application server:</p>
+    
+    <pre><code class="commandline">paster serve development.ini</code></pre>
+    
+    <p>Then point your browser at <a href="http://localhost:8000/chat">http://localhost:8000/chat</a>, and then open a second browser window and point it at <a href="http://127.0.0.1:8000/chat">http://127.0.0.1:8000/chat</a>, and test the application. It’s important to use the two different hostnames <tt>localhost</tt> and <tt>127.0.0.1</tt> because some browsers limit the number of open connections you can have to each hostname to two. With this limit it is impossible to run two instances of the chat application on the same host. Of course, <tt>127.0.0.1</tt> and <tt>localhost</tt> should refer to the same local machine, so its a good way of tricking the browser into thinking its talking to separate servers.</p>
+  </div>
+  
+  <div id="source">
+    <h2>Complete source code</h2>
+    <p><a href="http://orbited.org/svn/orbit/trunk/demos/python/pylonschat">PylonsChat SVN repository</a></p>
+  </div>
+  
+  <div id="conclusion">
+    <h2>Conclusion</h2>
+    <p>We now have a basic implementation of a chat application. The next obvious steps are authentication and timeout. For a more advanced example of a chat application checkout the <a href="http://orbited.org/svn/orbit/trunk/demos/python/webirc">webirc SVN Repository</a>. Webirc is an web-based IRC client written in Python with Twisted and Orbit. It deals with presence by sending regular pings to the browser.</p>
+    
+    <p>Another issue that we glossed over is that of cross-domain scripting. If you recall our <tt>orbit.cfg</tt> file for this tutorial, we enabled the orbit proxy to dispatch requests to the chat server. The effect of this is that the browser only knows about the orbit server and thinks that all of its communication with the chat server is actually coming from the orbit server. This is important because browsers do not allow cross-domain scripting. This means that if we received events inside of an <tt>iframe</tt> that was served from <tt>localhost:8000</tt>, then we can’t make calls from the <tt>iframe</tt> to a parent window server from <tt>localhost:4700</tt> because it counts these as different domains. The proxy is an easy way to ignore the whole issue.</p>
+    
+    <p>Of course, on a production site it doesn’t make sense to use the orbit proxy for a variety of reasons. There will likely be a mismatch between the number of Orbited nodes you have and the number of web nodes you have, so there is no sensible proxy mapping. More importantly though, the proxy adds latency to each request and uses additional processor. The proxy should therefore be treated as a development and testing tool only. Orbited comes with built-in solutions for handling cross-domain scripting. One of those solutions is the <tt>iframe_domain</tt> transport. It is nearly identical to the <tt>iframe</tt> transport except that it dispatches an initial <tt>&lt;script&gt;document.domain="hostname"&lt;/script&gt;</tt> to the browser right after its connected. “hostname” will be replaced with the top level hostname from the <tt>Host</tt> header of the request, with the port also stripped. So if the <tt>Host</tt> header is <tt>some.sub.domain.com:8000</tt>, then the initial script sent will be <tt>&lt;script&gt;document.domain="domain.com"&lt;/script&gt;</tt>.</p>
+    
+    <p>This problem is addressed in the JavaScript source of the webirc client as well, and you should take a look before you try to deploy your orbit applications in a production environment.</p>
+    
+  </div>
+</body>
+</html>

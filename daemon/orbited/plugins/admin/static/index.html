@@ -1,0 +1,30 @@
+<html>
+ <head>
+  <title>admin</title>
+  <link rel=stylesheet href="/_/admin/static/admin.css">
+  <script src="/_/orbited.js"></script>
+  <script src="/_/admin/static/admin.js"></script>
+  <script src="/_/plugin.js"></script>
+ </head>
+ <body onload="initialize();">
+  <h1>Orbited<span>Admin</span></h1>
+
+  <div class=section>
+   <h4>Traffic Information</h4>
+   <div class=canvas_holder><canvas id=graph_users height=100 width=600></canvas><div id=users_div class=canvas_label></div></div>
+   <div class=canvas_holder><canvas id=graph_msgs height=100 width=600></canvas><div id=msgs_div class=canvas_label></div></div>
+   <div class=canvas_holder><canvas id=graph_bandwidth height=100 width=600></canvas><div id=bandwidth_div class=canvas_label></div></div>
+  </div>
+
+  <div class=section>
+   <h4>Manage Plugins</h4>
+   <div id=plugins></div>
+  </div>
+
+  <div class=section>
+   <h4>Sessions</h4>
+   <div id=sessions></div>
+  </div>
+
+ </body>
+</html>

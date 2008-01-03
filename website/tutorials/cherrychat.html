@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../css/tutorials_common.css">
+  <title>Orbited: CherryChat Tutorial</title>    
+</head>
+<body>
+  <h1>CherryChat - an Orbited tutorial</h1>
+  <div class="toc">
+    <h2>Table of contents</h2>
+    <ul>
+      <li><a href="#goal">Goal</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#python">Server-side Python</a></li>
+      <li><a href="#htmljs">HTML and JavaScript</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>
+      <li><a href="#source">Source code</a></li>
+    </ul>
+  </div>
+  
+  <div id="goal">
+    <h2>Goal</h2>
+    <p>The goal of this tutorial is to introduce you to Orbited and the Python Orbited client API, pyorbited. The tangible goal is to produce a simple web-based chat application. There will be one main “chatroom” where every user who signs on is placed. We won’t deal with authentication or presence (detecting if someone timed out or left.) These are all possible with Orbited but are outside the scope of this tutorial. Below is a screenshot of the end goal.</p>
+    
+    <img style="margin-left: 10em;"src="cherrychat.png" width="438" height="302" alt="CherryChat">
+  </div>
+  
+  <div id="prerequisities">
+    <h2>Prerequisites</h2>
+    <ol>
+      <li>
+        <h3>Orbited</h3>
+        <p>This tutorial assumes you have already installed Orbited. If you haven’t then check out the tutorial on <a href="installation.html">Installing Orbited</a>.</p>
+      </li>
+      <li>
+        <h3>CherryPy 3.0.1+</h3>
+        <p>CherryPy is a Python http server that allows you to expose Python functions to the web. To install CherryPy simply run:</p>
+        
+        <pre><code class="commandline">easy_install CherryPy==3.0.1</code></pre>
+      </li>
+      <li>
+        <h3>PyOrbited</h3>
+        <p>PyOrbited is a library of Python implementations of the Orbited client API. It currently consists of a basic socket-based implementation, a twisted implementation, and a pyevent/libevent implementation. For our purposes we only need the basic implementation, but all three come with PyOrbited. To install the library simply run:</p>
+        
+        <pre><code class="commandline">easy_install pyorbited</code></pre>
+        
+        <p>For more information about PyOrbited see the tutorial <a href="python_intro.html">Using Python with Orbited</a>.</p>
+      </li>
+    </ol>
+  </div>
+  
+  <div id="python">
+    <h2>Server-side Python, step by step</h2>
+    <p>This tutorial will keep the Python source as simple as possible, so the chat functionality will be bare-bones.</p>
+    
+    <p>To begin, we create the directory and five empty files we will need for our chat server, as follows:</p>
+    <img src="directory-structure.png" width="170" height="129" style='border:solid 1pt;' alt="Directory Structure">
+
+    <p>The <tt>chat.py</tt> file will contain the bulk of our code.  To begin, we import cherrypy, along with the simple orbited client, which we initialize:</p>
+    
+    <pre><code class="python">import cherrypy
+from pyorbited.simple import Client
+orbited = Client()</code></pre>
+    
+    <p>Next, we create a ChatServer class, which contains functions for the operations which will be called by our JavaScript, <tt>join</tt> and <tt>msg</tt>.  <tt>user_keys</tt> is a simple helper function which returns a list of users, to which we will send events:</p>
+    
+    <pre><code class="python">class ChatServer(object):
+    users = []
+    def user_keys(self):
+        return ['%s, %s, /cherrychat' % (u, s) for u,s in self.users]
+    
+    @cherrypy.expose
+    def join(self, user, session='0', ie_nocache=None):
+        if (user, session) not in self.users:
+            self.users.append((user, session))
+            orbited.event(self.user_keys(), '&lt;b>%s joined&lt;/b>' % user)
+    
+    @cherrypy.expose
+    def msg(self, user, msg,session='0', ie_nocache=None):
+        orbited.event(self.user_keys(), '&lt;b>%s&lt;/b> %s' % (user, msg))</code></pre>
+    
+    <p>As you can see, these two functions are preceded by a decorator, <tt>@cherrypy.expose</tt>, which tells CherryPy to expose them to HTTP <tt>GET</tt> requests from the JavaScript in our chat page.</p>
+    
+    <p>The <tt>join</tt> function adds the user if he is not among those already logged in, and then sends an event to all users informing them of the newly-joined user.  The <tt>msg</tt> function simply passes along the message to every connected user.</p>
+    
+    <p>It is worthwhile to look at the <tt>user_keys</tt> helper function. The purpose of this function is to return a list of orbit keys that correspond to the users that are currently logged in. Each key is composed of three parts, the user id, the session id, and the location of the request. In our application we aren’t using sessions so every user is given the session id of ‘0’. The user id is simply the username we got from the <tt>join</tt> command, and the location we are choosing arbitrarily to be <tt>/cherrychat</tt>. Any valid HTTP location would work though. You’ll see this location again in the JavaScript.</p>
+    
+    <p>Finally, some basic configuration code, taken essentially from the <a href="http://www.cherrypy.org/wiki/StaticContent" title="StaticContent - CherryPy - Trac">CherryPy StaticContent wiki</a> (see that page for details), finishes off our Python code:</p>
+    
+    <pre><code class="python">if __name__ == '__main__':
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Set up site-wide config first so we get a log if errors occur.
+    cherrypy.config.update({'environment': 'production',
+                            'log.screen': True,
+                            'server.socket_port': 4700,
+                            'server.thread_pool': 0,
+                            'tools.staticdir.root': current_dir})
+    
+    conf = {'/static': {'tools.staticdir.on': True,
+                        'tools.staticdir.dir': 'static'}}
+    cherrypy.quickstart(ChatServer(), '/', config=conf)</pre></code>
+    
+    <p>We should also take a quick look at <tt>orbited.cfg</tt>. There is very little in this file as the default configuration is mostly fine.</p>
+    
+    <pre><code class="orbited_config">[global]
+proxy.enabled = 1
+proxy.keepalive = 0
+
+[proxy]
+/cherrychat -> ORBITED
+/ -> http://127.0.0.1:4700</code></pre>
+    
+    <p>To avoid cross-domain scripting problems we will use the Orbited proxy to redirect all requests to our chat application, except those for <tt>/cherrychat</tt>. To JavaScript, the Orbited daemon and the CherryChat server will seem to be coming from the same source. You may have noticed in our CherryPy configuration we set the thread pool to 0. This is to avoid any threading complexities that are out of the scope of this tutorial. Having a single thread introduces and issue with keepalive though, and as such we will disable it in our proxy.</p>
+  </div>
+  
+  <div id="htmljs">
+    <h2>Client-side HTML and JavaScript, step by step</h2>
+    <h3>HTML</h3>
+    <p>The HTML for our chat example is very simple.  It consists of two form text fields with their associated buttons, and a <tt>div</tt> called <tt>#box</tt>, into which the content of the chat will go.</p>
+    
+    <p>To begin the file (<tt>chat.html</tt>), we need a doctype declaration (to trigger browsers’ standards mode), and a header, which links to a CSS stylesheet and the client-side JavaScript.  We make sure to include <tt>/_/orbited.js</tt>, a static JavaScript file served by Orbited, which takes care of the details of connecting to Orbited via the best transport for any particular browser, as well as defining a few useful helper functions:</p>
+    
+    <pre><code class="html">&lt;!DOCTYPE html>
+&lt;html>
+  &lt;head>
+    &lt;title>CherryChat&lt;/title>
+    &lt;link rel="stylesheet" href="chat.css">
+    &lt;script src="/_/orbited.js">&lt;/script>
+    &lt;script src="chat.js">&lt;/script>
+  &lt;/head></code></pre>
+    
+    <p>Next, we include a text field and button for the nickname:</p>
+    
+    <pre><code class="html">  &lt;body>
+    &lt;input type="text" id="nickname">
+    &lt;input type="button" value="nickname" onclick="connect();"></code></pre>
+    
+    <p>Finally, we add a <tt>div</tt> which can accept the actual chat content, followed by another text field and button for adding to the chat, and the closing tags for the <tt>body</tt> and <tt>html</tt> elements:</p>
+    
+    <pre><code class="html">    &lt;div id="box">&lt;/div>
+    &lt;input type="text" id="chat">
+    &lt;input type="submit" value="chat" onclick="send_msg();">
+  &lt;/body>
+&lt;/html></code></pre>
+    
+    <h3>CSS</h3>
+    <p>The CSS stylesheet for our chat page can style it however we like.  In this case, we keep things very simple, setting a few margins, and adding dashed blue borders around each displayed chat event:</p>
+    
+    <pre><code class="css">body {
+  margin-left:2em;
+}
+
+#box {
+  border: 1px solid black;
+  width: 80%;
+  margin: .5em auto .5em 0;
+  height: 10em;
+  overflow: scroll;
+}
+
+.event {
+  border: 1px dashed blue;
+  margin: .5em auto;
+  padding: .2em;
+  width: 90%;
+}</code></pre>
+    
+    <h3>JavaScript</h3>
+    <p>The JavaScript is the meat of our client-side code. To begin, we need to define the variable <tt>ie_nocache</tt>. It will be used later in the tutorial. Its only purpose is to keep Internet Explorer from caching requests.  Also, we make a <tt>create_xhr</tt> function which papers over browser differences in creating XMLHttpRequest objects.</p>
+    
+    <pre><code class="javascript">var ie_nocache = 1;
+
+create_xhr = function() {
+  return window.ActiveXObject ?
+		new ActiveXObject("Microsoft.XMLHTTP") :
+		new XMLHttpRequest();
+}</code></pre>
+    
+    <p>The first bit of real code we need will handle connection. After someone types in their nickname we need to do two things. 1) Initialize the Orbited event stream.  To do this, we use the <tt>connect</tt> function of the <tt>Orbited</tt> object from <tt>orbited.js</tt>.  This function takes care of picking the best transport for the current browser, and dealing with transport-specific JavaScript.  We pass it the <tt>chat_event</tt> callback function, which will be called with the payload of each event.  2) We need to let the chat server know that we are now connected so we receive any future messages. We do this by making a <tt>GET</tt> request to the server and we include our nickname.</p>
+    
+    <p>We’ll break this up into two functions. The <tt>connect</tt> function will take care of connecting to Orbited, and the <tt>join</tt> function will send the request to the chat server. We’ll have the connect function call the join function instead of the other way around because we want to first connect the <tt>iframe</tt> before we alert the server, to make sure we don’t miss any messages.</p>
+    
+    <pre><code class="javascript">connect = function() {
+  var name = document.getElementById('nickname').value;
+  Orbited.connect(chat_event, name, "/cherrychat", "0");
+  join(name);
+}
+
+join = function(user) {
+  var xhr = create_xhr();
+  xhr.open("GET", "/join?user=" + user, true);
+  xhr.send(null);
+}</code></pre>
+    
+    <p>Next, we want to be able to see any events that are sent. If you recall the server code, we’ll be receiving events in the form of simple JavaScript strings. We just want to stick each string in its own div and put that div in our main <tt>chat_box</tt> div. The CSS will take care of the formatting.</p>
+    
+    <p>Remember, we told the <tt>Orbited.connect</tt> function that <tt>chat_event</tt> was our callback.  So when each event comes in, <tt>chat_event</tt> will be called with its payload.</p>
+    
+    <pre><code class="javascript">chat_event = function(data) {
+  var chat_box = document.getElementById('box');
+  var div = window.parent.document.createElement('div');
+  div.className = "event";
+  div.innerHTML = data;
+  chat_box.appendChild(div);
+  chat_box.scrollTop = chat_box.scrollHeight;
+}</code></pre>
+    
+    <p>The final step is to provide a way to send messages. Sending a message is a matter of contacting the chat server to call the <tt>msg</tt> function. We need to provide the message text as well as the nickname of the sender. Also, remember the variable <tt>ie_nocache</tt>? We want to increment it every time we send a message, so that each call to the <tt>msg</tt> function looks different. If we don’t do this, then some browsers—such as Internet Explorer 6—will not send the message a second time, because they will have cached the result of the first request. We don’t actually care about the responses to these requests; we are only interested their effect: dispatching an orbit event. Having the cached result in the browser is useless to us, if the server never gets the message.</p>
+    
+    <p>Here is the code we need to send a message:</p>
+    
+    <pre><code class="javascript">send_msg = function() {
+  ie_nocache += 1;
+  var xhr = create_xhr();
+  var msg = document.getElementById('chat').value;
+  var name = document.getElementById('nickname').value;
+  xhr.open("GET", "/msg?id=" + ie_nocache + "&amp;user=" + name + "&amp;msg=" + msg, true);
+  xhr.send(null);
+}</code></pre>
+    
+    <p>And with that we are finished with the JavaScript side of our chat application. Everything else should be in place at this point, so you can open two terminals to the root <tt>cherrychat</tt> directory, in one starting Orbited:</p>
+    
+    <pre><code class="commandline">orbited</code></pre>
+    
+    <p>And in the other running <tt>chat.py</tt>:</p>
+    
+    <pre><code class="commandline">python chat.py</code></pre>
+    
+    <p>Then point your browser at <a href="http://localhost:8000/static/chat.html">http://localhost:8000/static/chat.html</a>, and then open a second browser window and point it at <a href="http://127.0.0.1:8000/static/chat.html">http://127.0.0.1:8000/static/chat.html</a>, and test the application. It’s important to use the two different hostnames <tt>localhost</tt> and <tt>127.0.0.1</tt> because some browsers limit the number of open connections you can have to each hostname to two. With this limit it is impossible to run two instances of the chat application on the same host. Of course, <tt>127.0.0.1</tt> and <tt>localhost</tt> should refer to the same local machine, so its a good way of tricking the browser into thinking its talking to separate servers.</p>
+  </div>
+  
+  <div id="source">
+    <h2>Complete source code</h2>
+    <p><a href="http://orbited.org/svn/orbit/trunk/demos/python/cherrychat">CherryChat SVN repository</a></p>
+  </div>
+  
+  <div id="conclusion">
+    <h2>Conclusion</h2>
+    <p>We now have a basic implementation of a chat application. The next obvious steps are authentication and timeout. For a more advanced example of a chat application checkout the <a href="http://orbited.org/svn/orbit/trunk/demos/python/webirc">webirc SVN Repository</a>. Webirc is an web-based IRC client written in Python with Twisted and Orbited. It deals with presence by sending regular pings to the browser.</p>
+    
+    <p>Another issue that we glossed over is that of cross-domain scripting. If you recall our <tt>orbited.cfg</tt> file for this tutorial, we enabled the Orbited proxy to dispatch requests to the chat server. The effect of this is that the browser only knows about the Orbited server and thinks that all of its communication with the chat server is actually coming from the Orbited server. This is important because browsers do not allow cross-domain scripting. This means that if we received events inside of an <tt>iframe</tt> that was served from <tt>localhost:8000</tt>, then we can’t make calls from the <tt>iframe</tt> to a parent window server from <tt>localhost:4700</tt> because it counts these as different domains. The proxy is an easy way to ignore the whole issue.</p>
+    
+    <p>Of course, on a production site it doesn’t make sense to use the orbit proxy for a variety of reasons. There will likely be a mismatch between the number of Orbited nodes you have and the number of web nodes you have, so there is no sensible proxy mapping. More importantly though, the proxy adds latency to each request and uses additional processor. The proxy should therefore be treated as a development and testing tool only.</p>
+    
+  </div>
+</body>
+</html>

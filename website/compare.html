@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+	<meta name="generator" content="TextMate http://macromates.com/">
+	<meta name="author" content="Michael Carter and Jacob Rus">
+	
+  <!-- Navigational metadata (accessibility) -->
+  <link rel="top"      href="./index.html" title="Homepage">
+  <link rel="up"       href="./index.html" title="Up">
+  <link rel="first"    href="./index.html" title="First page">
+  <link rel="previous" href="./community.html" title="Previous page">
+  <link rel="next"     href="./news.html" title="Next page">
+  <link rel="last"     href="./news.html" title="Last page">
+  <link rel="toc"      href="./index.html" title="Table of contents">
+  <link rel="index"    href="./index.html" title="Site map">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/docs.css">
+  <link rel="stylesheet" href="css/prosimii-screen-alt.css" media="screen" title="Prosimii (alternative)">
+  <link rel="stylesheet alternative" href="css/prosimii-print.css" media="screen" title="Print Preview">
+  <link rel="stylesheet" href="css/prosimii-print.css" media="print">
+
+  <title>Orbited: Comet Stack Comparison</title>
+</head>
+<body>
+  <!-- For non-visual user agents: -->
+  <div id="top"><a href="#main-copy" class="doNotDisplay doNotPrint">Skip to main content.</a></div>
+
+  <!-- ===== Header ===== -->
+  <div id="header">
+    <div class="midHeader">
+      <h1 class="headerTitle" title="Orbited: Scaling Comet Applications"><img src="images/orbited-futura-brush.png" width="350" height="100" alt="Orbited: Scaling Comet Applications"></h1>
+
+      <!-- <br class="doNotDisplay doNotPrint">
+      <div class="headerLinks">
+        <span class="doNotDisplay">Tools:</span>
+        <a href="irc://irc.freenode.net/#orbited">#orbited IRC channel</a>
+        <span class="doNotDisplay">|</span>
+        <a style="cursor: help;" title="Thanks to CSS, this page is already printer friendly!">printer-friendly version «</a>
+      </div> -->
+    </div>
+    
+    <div class="subHeader">
+      <span class="doNotDisplay">Navigation:</span>
+      <a href="index.html">Home</a> |
+      <a href="download.html">Download</a> |
+      <a href="demos.html">Live Demos</a> |
+      <a href="blog">Blog</a> |
+      <a href="docs.html">Documentation</a> |
+      <a href="tutorials.html">Tutorials</a> |
+      <a href="community.html">Community</a> |
+      <a href="projects.html">Projects</a> |
+      <a href="about.html">About</a>
+    </div>
+  </div>
+
+  <!-- ===== Main Copy ===== -->
+  <div id="main-copy">
+    <h1>Orbited: Comparison of Comet Stacks</h1>
+    <div class=toc>
+      <h2>Table of contents</h2>      
+      <ul>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#simple_orbited">Simple Orbited Stack</a></li>
+        <li><a href="#cometd">Cometd Stack</a></li>
+        <li><a href="#tailspin">TailSpin stack</a></li>
+      </ul>
+    </div>
+    <div id="introduction">
+     <h2>Introduction</h2>
+     <p>There are an increasing number of Comet platforms out there, and we want to give you an idea of how they relate to Orbited. This page will be updated with diagrams comparing other frameworks to our own.</p>
+    </div>
+    <div id="simple_orbited">
+     <h2> Simple Orbited Stack </h2>
+     <img src="images/simple_orbited_stack.png">
+     <p>Orbited runs beside your Web application. The browser maintains a permanent connection to Orbited. As the user interacts with the browser, requests are made to the app in the traditional style of AJAX or standard HTTP communication. If the user triggers an event that should be dispatched to other users, it sends the event to the application, not Orbited. When the application has an event to dispatch to the user, such as an instant message, the application sends it to Orbited which forwards it to the browser.<p>
+     <h3>Pros</h3>
+     <ul>
+      <li>Very Fast</li>
+      <li>Very Simple</li>
+      <li>Easy to setup</li>
+      <li>Scalable</li>
+      <li>Many Tutorials</li>
+      <li>Rudimentary Documentation</li>
+     </ul>
+     <h3>Cons</h3>
+     <ul>
+      <li>No Publish/Subscribe Mechanism</li>
+     </ul>
+    </div>
+    <div id="cometd">
+     <h2> Cometd Stack </h2>
+     <img src="images/cometd_stack.png">
+     <p>Cometd also runs beside your web application. The browser maintains a permanent connection to Orbited. As the user interacts with the website, they may trigger an event that must be dispatched to another user or group of users. This event is delivered directly to Cometd. If the webserver needs notification of that event as well, it must either act as a Bayeux enabled browser and subscribe to the event via Cometd, or the browser needs to also send the event to the web application. Communication to Cometd is generally in the form of a subscribe or unsubscribe request, or in the form of a publish event. Communication from Cometd is generally to publish an event to the browser.
+     <p>
+     <h3>Pros</h3>
+      <ul>
+      <li>Reasonably Fast (Implementation Specific)</li>
+      <li>Easy to Setup</li>
+      <li>Publish Subscribe Mechanism</li>
+     </ul>
+     <h3>Cons</h3>
+     <ul>
+      <li>Locked into Dojo toolkit<li>
+      <li>Difficult to implement Bayeux Client for the Web app</li>
+      <li><a href="http://www.orbited.org/blog/2007/04/the-failure-of-cometd/">Serious Scalability issues</a></li>
+      <li>No Documentation</li>
+      <li>Moving Target (API and Bayeux protocol change often)</li>
+     </ul>
+    </div>
+    <div id="tailspin">
+     <h2>TailSpin</h2>
+     <img src="images/tailspin_stack.png">
+      <p>Tailspin does not currently exist as a stack. It was <a href="http://www.orbited.org/blog/2007/07/orbited-cometd/">proposed</a> by Michael Carter as a solution to scaling a Cometd/Bayeux server by combining the Orbited stack with a PubSub layer and a Bayeux Adapter.</p>
+     <h3>Pros</h3>
+      <ul>
+      <li>Fast</li>
+      <li>Publish Subscribe Mechanism</li>
+      <li>App directly accesses Pub-Sub server (i.e: Web app is a jabber client)</li>
+      <li>Scalable</li>      
+     </ul>
+     <h3>Cons</h3>
+     <ul>
+      <li>Still Locked into Dojo toolkit<li>
+      <li>Doesn't exist Yet</li>
+      <li></li>
+     </ul>      
+    </div>
+  </div>
+
+  <!-- ===== Footer ===== -->
+  <div id="footer">
+    <span class="doNotPrint">Orbited<br>©2007 Michael Carter</span>
+  </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+
+Title
+    Comet for Highly Scalable Applications
+
+Intro
+    This is targeted at a medium to advanced audience, assumed knowledge of http
+
+What is Comet
+    what comet is from the client standpoint
+    [ Diagram from client perspective, both long-polling and iframe streaming ]
+    
+A Comet Server
+    holds on to connections, responds when it likes
+    [ Diagram No implementation specifics, but show that it keeps active connections open. An expansion of Diagram from last slide (leave the client part there) ]
+    
+Scaling Vertically: Question
+    How do you scale comet on a single machine?
+    
+Scaling Vertically: Broken Method
+    Use threaded server such as Apache or IIs
+    supports a few dozen users
+    cpu + latency goes through the roof
+    [ Diagram threaded]
+
+Scaling Vertically: Answer
+    Use event based architecture
+    explanation
+    Diagram
+
+
+Scaling Horizontally: Question
+    How do you scale comet servers across multiple machines?
+
+Scaling Horizontally: Broken Method
+    Keep state information
+    Have Comet nodes directly communicate
+    Embed Pubsub architecture
+    [ Diagram of multi-node cometd install. Just show two comted nodes with channel/user/security info sharing data between themselves, next to the app and browsers ]
+
+Scaling Horizontally: Answer
+    Share Nothing
+    Orbited
+    [ Diagram of multi-node orbited install. ]
+
+
+On Pub-Sub: What is it?
+    description
+    why you want it
+    examples: chat rooms, stock quote info, etc.
+
+PubSub Question: 
+    How do you scale publish/subscribe horizontally?
+    1. Distribute by user
+    [diagram]
+    2. Distribute by group
+    [diagram]
+
+PubSub Question: 
+    But How, Specifically?
+    Do not mix up with comet transport
+        layer your architecture
+        treat pubsub as a black box
+
+Pub Sub Options
+    IRC ( Internet Relay Chat )
+        - Good for large groups
+    XMPP (Jabber)
+        - Good for presence
+    JMS (Java Messenging Service)
+        - Good for nothing [ TODO: put something useful here. ]
+    
+Pub Sub with Orbited:
+    Explanation
+    [ Tailspin Diagram ]
+
+===========================
+
+Orbited Question:
+    How do you scale orbited dynamically
+    
+Answer: HaloD
+    describe routing
+    [HaloD routing diagram]
+    Describe Architecture
+    [HaloD architecture diagram]

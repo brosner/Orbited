@@ -1,0 +1,302 @@
+Slide 1: Title
+    - I am Michael Carter
+    - Lead Developer of OSS Orbited
+    - Principal Software Architect at Brand Up
+    - Freelance Consultant
+    
+Slide 2: What is Comet?
+    - Describes model of interaction
+    - Users see "real time" events
+    - Within a "vanilla" web browser
+        - No Flash
+        - No Java
+    - Many emerging applications already use comet
+        - Gmail Chat
+        - Meebo
+        - Renkoo
+    - In genreal
+        Chat
+        Sports Scores
+        Real-time Financial Updates
+        Coollaborative Document Editing
+    Transition:
+        So the question is, what does this look like from the server?
+Slide 3-7: Old Method: Polling
+    Age-old method of Polling
+    AKA "HTTP Pull"
+    AKA "Hammering the Server"
+    How does it work?
+        Think of the event queue and the applicaiton as seperate
+        The app pushes events to the event dispatcher as they occur
+        [ Slide Switch ]
+        All clients (browsers) ask queue for events
+        If there are no events for a client, they get none. (purple, pink)
+        [ Slide Switch ]
+        The browsers wait for a set interval
+        For instance, 2 seconds
+        [ Slide Switch ]
+        And then request events
+        [ Slide Switch ]
+        And this keeps up indefinitely
+        
+*Needed Slide*: Polling Overview
+    Pros
+        Easy to implement both server side and client side
+    Cons
+        Wasted Requests
+            - Depends on app.
+            - For instance gmail would have a majority of wasted requests
+        Additional Latency of polling interval
+            - Two seconds latency unacceptable
+            
+    [ Transition]
+        So there are some problems with Polling.
+        Can we do better?
+        
+*Needed Slide*: Long Polling
+    Pros
+        Latency gone
+        Similarly easy to implement on the client size
+    Cons
+        Hard to Scale
+    
+    [ Transition ]
+    So how do you scale comet?
+    This question is really two.
+    1) how do you scale up on a single node
+    2) how do you scale out across multiple nodes
+    [ Transition ]
+    
+Slide 8 - 14: Vertical Scaling
+    Threaded webservers have failed utterly in implementing scalable long polling solutions
+    Here's why
+    [ transition ]
+    The orange box is the app
+    On the right, each colored box represents a different browser
+    The middle is the event dispatcher.
+    You can see a queue of events waiting to be dispatched
+    The color of the event represents the destination browse
+    On the right part you'll notice the connect queue
+    In this example we have two threads servicing the connect queue
+    So the two green boxes represent the browsers that are being currently serviced
+    The red boxes are connections that are open, but aren't being handled by threads
+    Notice that there are light blue and pink events that are waiting to be dispatched
+    But they can't be dispatched b/c there is no thread to dispatch them
+    So we're stuck for the time being
+    Some time passes
+    [ Transition ]
+    And a new event is recieved. But its another pink event so it can't be dispatched
+    Only Green and turqoise events can be sent right now
+    Some more time passes
+    [ Transition ]
+    Low and Behold, a turqouise event
+    So its dispatched
+    Freeing up a thread to service the blue browser
+    Note though that the turqoise browser reconnects, but is no longer being serviced by a thread
+    [ Transition ]
+    And we have blue events waiting, so we dispatch them as well
+    Freeing up a thread for the purple browser
+    But now we're stuck again
+    And even as new events come in, such as the turqoise event, we can't do anything
+    [ Transition ]
+    So the wrong way, clearly, is to use a threaded server for long polling
+    Sure, I only had two threads in my example, but I only had 5 browsers.
+    If I had 1250 browsres, then i'd need 500 threads to achieve the same rotten performance
+    
+    In comparison to Polling
+        - Latency is reduced for very light load
+        - But Avg latency depends on order of events
+        - Cpu usage increases up to 7 times for moderate load
+            - See university of netherlands study
+            - One of the authors is presnting at this conference
+        - With a moderate load your cpu will max out
+            - I'm talking about a few hundred connections
+            - And the latency will be rotten.
+        - So just use polling.
+`   But you didn't pay to presentations on how not to scale comet applications
+    [ Transition ]
+    
+Slides 15 - 18: Veritcal Scaling - Right way 
+    The diagram is setup similarly
+    The difference is that we are servicing all connections at the same time
+    We don't use threads we use event based network io
+    Use epoll on linux, kqueue on BSD or OS 10.4
+    [ Transition ]
+    Blue event, dispatched
+    [ Transition ]
+    Green event, dispatched
+    [ Transition ]
+    Compared to polling we have
+        - Dereased latency: Don't wait for poll interval
+        - Decreased Cpu usage: No wasted requests
+        - By the same reasoning: Decreased Bandwith Usage
+
+Slide 19-27: Horizontal Scaling 
+    Thats just the warmup
+    Even if $ is unlimited, There are limits to a single node
+    How tall can we build buildings? Forget the Empire State building, land is cheap.
+    (Think LA)   
+    If you solve Horiz scaling then you just buy commodity hardware forever.
+    Which is why Horiz scaling is much more important to vertical scaling
+    [ Transition ]
+    Quick Overview
+    Don't try to create full-stack single node solutions    
+    That is, don't embed additional funcionality into the comet server
+        - No publish subscribe
+        - No applicatino state in the comet nodes
+        - No Inter-node communication
+    [ Transition ]
+    Lets say you have multiple browsers, A - F in the diagram
+    And multiple Comet nodes (Blue boxes)
+    Here is an example of a cometd deployment
+    Cometd is an open source comet server 
+    In the diagram you'll notice that each comet node is connected
+    That is because cometd is the main hub of communication
+    The browser sends messages directly to the cometd node
+    The application node can subscribe as a cometd client
+    So lets say that Browser A sends a chat message to Browser E
+    [ Transition ]
+    Each directed vertice represents the payload being transmitted from one physical location to another
+    In this case the message is transmitted from browser A to the leftmost comet mode
+    Then From their two the other two comet nodes
+    And from the middle comet node to the application
+    Now if Browser E wants to reply
+    [ Transition ]
+    You get the same process but the other direction
+    Sending the message in one direction involves the payload being transmitted 5 x for a 3 node deployment
+    If you add more nodes, this number increases
+    This means that each message needs to be processed by each comet server
+    The reason is that the cometd server acts as the event dispatcher, the listening server, and the publish subscribe server.
+    Furthermore, the application itself is no longer the center.
+    Events are passed to the app as an afterthought.
+    No chance to modify the payload contents
+    For instance, if you wnated to translate messages from english to spanish, there would be no way to
+    The lesson here is not to share any state in the comet nodes
+    And not to allow inter-node communication
+    [ Transition ]
+    Here is the general picture of a share nothing comet server deployment
+    Each node is absolutely unaware of any other comet nodes
+    The node knows about the application layer, and knows about the browsers its servicing
+    And thats it
+    As a result, there is no cpu or I/O overhead of sharing state
+    And the cpu usage actually scales linearly.
+    1 server supports N users
+    2 servers supports 2N users
+    [ Transition ]
+    So the project I work on is Orbited
+    It operates as a distributed hash table
+    Each users hashed to a particular server node
+    Multiple Application Nodes will use a pre-defined hash function
+    So every app node knows at all times where to find every browser connection
+    The app can be scaled using the same methods currently employed for web applications
+    [ Transition ]
+    Lets say browser B wants to send a message to browser E, like in the previous example
+    The message is sent to an app node.
+    The app node dispatches the message to the proper orbited server
+    The message is relayed to the browser
+    [ Transition ] 
+    A reply is sent to an app node.
+    The reply is sent to the proper comet node
+    And relayed back to browser B
+    
+    But what are we missing with this solution?
+    
+Slide 28: Publish Subscribe [ 
+    This model allows for users to subscribe to channels
+    Each paylaod is then sent to a channel
+    The pubsub server dispatches the message to all recipients in that channel
+    Most applications use some form of publish subscribe
+    A couple examples are
+    [ transition ] 
+    Real time chat    
+    Any app that requires 3 or more users to communicate at once
+    [ transition ]
+    Stock tickers
+    Think of each stock as a channel
+    
+    The big issue with publish subscribe is scalability
+    In fact, this is the major problem in the previous cometd example
+    
+    [ Transition ]
+
+    Here is an example of a publish subscribe server with a single node
+    There are two channels, orange and purple
+    Some users are subscribe to orange, some purple, some both
+    
+    But now we want to go to two nodes
+    
+    [ Transition ]
+    
+    We have two methods. The first is to distribute by group
+    In this case node1 services the purple channel 
+    and node2 the orange channel
+    
+    This method is great for applications that generally require users to connect to only a single channel
+    but what if you have each users connecting to an arbirtrary number of channels
+    If you have two channels, and all users need to connect to both
+    then this sort of scaling won't help at all
+    
+    [ Transition ]
+    
+    So instead you can distribute by user
+    But users 1-3 on node1
+    And users 4-5 on node2
+    
+    
+    The problem here is that your app node needs to send each message to all of the servers
+    Because you never know if a group has members on a particular pubsub node
+    
+    But all of this is just to say that pubsub is complicated.
+    these are details that we don't want to deal with
+    What we want to know is
+    [ transition ]
+    How specifically?
+    
+    Seperate pubsub from comet
+    They are seperate so don't treat them as the same
+    Your pubsub layer is a black box, a cloud.
+    Hook your app up as a client
+    Hook the comet dispatcher nodes up to the pubsub cloud
+    treat each browser as a pubsub client
+    treat the app as a pubsub client/component
+    All events are then sent via the pubsub cloud, not directly
+    
+    So what are your options for pubsub?
+    [ Transition ]
+    Don't reinvent the wheel
+    use something that is tried and true
+    IRC - 20 years old
+    Scales well with large channels and large numbers of usresw
+    Jabber / XMPP
+    Flexible protocol
+    Does presence well
+    peer to peer messenging is done really well
+    Java Messenging Service
+    Enterprise. 
+    Go nuts. go crazy.
+    
+    [ Transition ]
+    Here is how you dispatch orbited with pubsub
+    IRC/Jabber handles pubsub
+    App servers do all else
+    You can see on the diagram that the browser sends messages to pubsub bridge
+    then it receives messages from orbited via the pubsub bridge
+    The app could also talk directly to the app
+    for html
+    or standard ajax
+    If the server wants to send a message to a particular browser
+    It just sends the message to the pubusb cloud
+    
+    [ Transition ]
+    
+    Conclusion.
+    
+    polling latency unacceptable
+    Comet solves that problem
+    But its impossible to scale comet with current threaded design
+    Use event-based architectures
+    horizontal scaling requires share-nothing design
+    pusub is a difficult problem
+    So don't deal with it
+    use a layered architecture
+    

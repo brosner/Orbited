@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../css/tutorials_common.css">
+  <title>Orbited: RailsChat Tutorial</title>    
+</head>
+<body>
+  <h1>RailsChat - an Orbited tutorial</h1>
+  <div class="toc">
+    <h2>Table of contents</h2>
+    <ul>
+      <li><a href="#goal">Goal</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#ruby">Server-side Ruby</a></li>
+      <li><a href="#htmljs">HTML and JavaScript</a></li>
+      <li><a href="#conclusion">Conclusion</a></li>
+      <li><a href="#source">Source code</a></li>
+    </ul>
+  </div>
+  
+  <div id="goal">
+    <h2>Goal</h2>
+    <p>The goal of this tutorial is to introduce you to Orbited and the Ruby Orbited client API, ruby-orbited. The tangible goal is to produce a simple web-based chat application. There will be one main “chatroom” where every user who signs on is placed. We won’t deal with authentication or presence (detecting if someone timed out or left.) These are all possible with Orbited but are outside the scope of this tutorial. Below is a screenshot of the end goal.</p>
+
+    <img style="margin-left: 10em;" src="railschat.png" width="510" height="366" alt="RailsChat">
+  </div>
+  
+  <div id="prerequisities">
+    <h2>Prerequisites</h2>
+    <ol>
+      <li>
+        <h3>Orbited</h3>
+        <p>This tutorial assumes you have already installed Orbited. If you haven’t then check out the tutorial on <a href="installation.html">Installing Orbited</a>.</p>
+      </li>
+      <li>
+        <h3>Ruby on Rails</h3>
+        <p>Ruby on Rails is a web application framework that helps you build rich applications, using Ruby.  Installing Ruby on Rails is rather laborious, and outside the scope of this tutorial.</p>
+      </li>
+      <li>
+        <h3>ruby-orbited</h3>
+        <p>ruby-orbited is a library of Ruby implementations of the Orbited client API. We will put the <tt>ruby-orbited.rb</tt> script inside our <tt>/lib</tt> folder of our Rails application, to include it in our app.</p>
+        
+        <p>For more information about ruby-orbited see the tutorial <a href="ruby_intro.html">Using Ruby with Orbited</a>.</p>
+      </li>
+    </ol>
+  </div>
+  
+  <div id="ruby">
+    <h2>Server-side Ruby, step by step</h2>
+    <p>This tutorial will attempt to keep the Ruby source as simple as is possible for a Ruby on Rails application, so the chat functionality will be bare-bones.</p>
+    
+    <p>To begin, we create a new Rails application, and then change directories into our new application directory, by running on the command line:</p>
+    
+    <pre><code class="commandline">rails railschat
+cd railschat</code></pre>
+    
+    <p>Which creates a massive directory structure, populated with dozens of files.</p>
+    
+    <p>Next, we need to create the controller for our application, by running the controller-creator script:</p>
+
+    <pre><code class="commandline">./script/generate controller chat index</code></pre>
+    
+    <p>Next we want to add three more files to our <tt>railschat</tt> directory: <tt>/orbited.cfg</tt>, <tt>/public/stylesheets/chat.css</tt>, and <tt>/public/javascripts/chat.js</tt>.  We can leave all three empty for now.  Our <tt>railschat/</tt> directory should now look something like the following (broken into two columns to save vertical space; pink splotches represent files we care about):</p>
+    
+    <img src="railschat-directory.png" width="346" height="417" style="border:solid 1pt;" alt="Railschat Directory">
+    
+    <p>The <tt>/config/environment.rb</tt> file will contain our initialization code.  Put the following at the bottom of the file, after all the standard boilerplate that is created by Rails:</p>
+    
+    <pre><code class="ruby">require "ruby-orbited"
+$orbit = SimpleOrbit::Client.new()
+$users = []</code></pre>
+
+    <p>This imports the Orbited client library, and creates a new connection called <tt>$orbit</tt>, and also creates a users array called <tt>$users</tt>, both as global variables which will be accessible to our controller.</p>
+    
+    <p>Next, we populate the <tt>/app/controllers/chat_controller</tt> file, which contains functions for the operations which will be called by our JavaScript, <tt>join</tt> and <tt>msg</tt>.  <tt>user_keys</tt> is a simple helper function which returns a list of users, to which we will send events:</p>
+    
+    <pre><code class="ruby">def user_keys
+  list = []
+  for user in $users do
+    list = list + [user[0] + ", " + user[1].to_s + ", /railschat",]
+  end
+  return list
+end
+
+class ChatController &lt; ApplicationController
+  
+  def index
+  end
+  
+  def join
+    user = params[:user]
+    session = params[:session] || 0
+    ie_nocache = params[:ie_nocache]
+    
+    if not $users.member?([user, session])
+      $users = $users + [[user, session]]
+      $orbit.event(user_keys(), '*' + user + ' joined*')
+    end
+    render :text => "ok."
+  end
+  
+  def msg
+    session = params[:session] || 0
+    ie_nocache = params[:ie_nocache] || nil
+    
+    $orbit.event(user_keys(), '' + params[:user] + ': ' + params[:msg])
+    render :text => "ok."
+  end
+end</code></pre>
+
+    <p>All of the so-called “actions” in the <tt>ChatController</tt> class will be exposed to HTTP <tt>GET</tt> requests from the JavaScript in our chat page.</p>
+    
+    <p>The <tt>join</tt> action adds the user if he is not among those already logged in, and then sends an event to all users informing them of the newly-joined user.  The <tt>msg</tt> action simply passes along the message to every connected user.</p>
+    
+    <p>It is worthwhile to look at the <tt>user_keys</tt> helper function. The purpose of this function is to return a list of Orbited keys that correspond to the users that are currently logged in. Each key is composed of three parts, the user id, the session id, and the location of the request. In our application we aren’t using sessions so every user is given the session id of ‘0’. The user id is simply the username we got from the join command, and the location we are choosing arbitrarily to be <tt>/railschat</tt>. Any valid HTTP location would work though. You’ll see this location again in the JavaScript.</p>
+    
+    <p>We should also take a quick look at <tt>/orbited.cfg</tt>. There is very little in this file as the default configuration is mostly fine.</p>
+  
+    <pre><code class="orbited_config">[global]
+proxy.enabled = 1
+proxy.keepalive = 0
+
+[proxy]
+/railschat -> ORBITED
+/ -> http://127.0.0.1:3000</code></pre>
+    
+    <p>To avoid cross-domain scripting problems we will use the Orbited proxy to redirect all requests to our chat application. To JavaScript the Orbited daemon and the RailsChat server will seem to be one and the same. In this simple tutorial, we are running a single Rails instance in a single thread on one computer, to avoid threading and multiple-machine complexities that are out of the scope of this tutorial. Having a single thread introduces an issue with keepalive, however; as such we will disable it in our proxy.</p>
+  </div>
+  
+  <div id="htmljs">
+    <h2>Client-side HTML and JavaScript, step by step</h2>
+    <h3>HTML</h3>
+    <p>The HTML for our chat example is very simple.  It consists of two form text fields with their associated buttons, and a <tt>div</tt> called <tt>#box</tt>, into which the content of the chat will go.</p>
+    
+    <p>To begin the file (<tt>chat.html</tt>), we need a doctype declaration, and a header, which links to a CSS stylesheet and the client-side JavaScript:</p>
+    
+    <pre><code class="html">&lt;!DOCTYPE html>
+&lt;html>
+  &lt;head>
+    &lt;title>RailsChat&lt;/title>
+    &lt;link rel="stylesheet" href="/stylesheets/chat.css">
+    &lt;script src="/_/orbited.js">&lt;/script>
+    &lt;script src="/javascripts/chat.js">&lt;/script>
+  &lt;/head></code></pre>
+    
+    <p>Next, we include a text field and button for the nickname:</p>
+    
+    <pre><code class="html">  &lt;body>
+    &lt;input type="text" id="nickname">
+    &lt;input type="button" value="nickname" onclick="connect();"></code></pre>
+    
+    <p>Finally, we add a <tt>div</tt> which can accept the actual chat content, followed by another text field and button for adding to the chat, and the closing tags for the <tt>body</tt> and <tt>html</tt> elements:</p>
+    
+    <pre><code class="html">    &lt;div id="box">&lt;/div>
+    &lt;input type="text" id="chat">
+    &lt;input type="submit" value="chat" onclick="send_msg();">
+  &lt;/body>
+&lt;/html></code></pre>
+    
+    <h3>CSS</h3>
+    <p>The CSS stylesheet (<tt>/public/stylesheets/chat.css</tt>) for our chat page can style it however we like.  In this case, we keep things very simple, setting a few margins, and adding dashed blue borders around each displayed chat event:</p>
+    
+    <pre><code class="css">body {
+  margin-left:2em;
+}
+
+#box {
+  border: 1px solid black;
+  width: 80%;
+  margin: .5em auto .5em 0;
+  height: 10em;
+  overflow: scroll;
+}
+
+.event {
+  border: 1px dashed blue;
+  margin: .5em auto;
+  padding: .2em;
+  width: 90%;
+}</code></pre>
+        
+    <h3>JavaScript</h3>
+    <p>The JavaScript (<tt>/public/javascripts/chat.js</tt>) is the meat of our client-side code. We are going to start with a little bit of boilerplate. We need a function that will create an XMLHttpRequest object no matter what browser we’re using. We also need to define the variable <tt>ie_nocache</tt>. It will be used later in the tutorial. Its purpose is to keep Internet Explorer 6 from caching requests.</p>
+    
+    <pre><code class="javascript">var ie_nocache = 0;
+var event_iframe = document.getElementById('events');
+
+function create_xhr() {
+  try { return new ActiveXObject("Msxml2.XMLHTTP"); } catch (e) {}
+  try { return new ActiveXObject("Microsoft.XMLHTTP"); } catch (e) {}
+  try { return new XMLHttpRequest(); } catch(e) {}
+  return null;
+}</code></pre>
+    
+    <p>The first bit of real code we need will handle connection. After someone types in their nickname we need to do two things. 1) Initialized the Orbited event stream. In this case we will use the iframe transport, so this entails connecting the hidden <tt>iframe</tt> to the Orbited server at the RailsChat location. 2) We need to let the chat server know that we are now connected so we receive any future messages. We do this by making a <tt>GET</tt> request to the server and we include our nickname.</p>
+    
+    <p>We’ll break this up into two functions. The <tt>connect</tt> function will take care of the <tt>iframe</tt> and the <tt>join</tt> function will send the request to the chat server. We’ll have the connect function call the join function instead of the other way around because we want to first connect the <tt>iframe</tt> before we alert the server so we don’t miss any messages.</p>
+    
+    <pre><code class="javascript">function connect() {
+  name = document.getElementById('nickname').value;
+  event_iframe.src='/railschat?user=' + name + '&amp;session=0&amp;transport=iframe';
+  join(name);
+}
+
+function join(user) {
+  xhr = create_xhr();
+  xhr.open("GET", "/join?user=" + user, true)
+  xhr.send(null);
+}</code></pre>
+    
+    <p>Next, we want to be able to see any events that are sent. If you recall the server code, we’ll be receiving events in the form of simple JavaScript strings. We just want to stick each string in its own div and put that div in our main <tt>chat_box</tt> div. The CSS will take care of the formatting.</p>
+    
+    <p>It is important to note at this point that the iframe transport depends on the parent window having a function named event. Whenever an event is sent, it is sent in the form <tt>&lt;script&gt; window.parent.event(event_data);&lt;/script&gt;</tt>. This means that its our job to actually define the event function. We’ll use this function to perform the aforementioned DOM manipulation. That is, we’ll have event actually put the text into the appropriate divs.</p>
+    
+    <pre><code class="javascript">event_iframe.e = function(data) {
+  chat_box = document.getElementById('box');
+  div = window.parent.document.createElement('div');
+  div.className = "event";
+  div.innerHTML = data;
+  chat_box.appendChild(div);
+  chat_box.scrollTop = chat_box.scrollHeight;
+}</code></pre>
+    
+    <p>The final step is to provide a way to send messages. Sending a message is a matter of contacting the chat server to call the <tt>msg</tt> function. We need to provide the message text as well as the nickname of the sender. Also, remember how we defined the variable <tt>ie_nocache</tt>? We want to increment <tt>ie_nocache</tt> every time we send a message so that every call to the <tt>msg</tt> function looks different, event if we send the same message twice. If we don’t do this, then some browsers such as Internet Explorer 6 will not send the message a second time because it will have cached the result of the first request. We don’t actually care about the responses to these requests though; we are only interested their effect: dispatching an orbit event. So having the cached result in the browser is useless to us, if the server never gets the message. Here is the code we need to send a message.</p>
+    
+    <pre><code class="javascript">function send_msg() {
+  ie_nocache = ie_nocache + 1;
+  xhr = create_xhr();
+  msg = document.getElementById('chat').value;
+  nickname = document.getElementById('nickname').value;
+  xhr.open("GET", "/msg?ie_nocache=" + ie_nocache + "&amp;user=" + nickname + "&amp;msg=" + msg, true);
+  xhr.send(null);
+}</code></pre>
+    
+    <p>And with that we are finished with the JavaScript side of our chat application. Everything else should be in place at this point, so you can open two terminals to the root <tt>railschat</tt> directory, in one starting Orbited:</p>
+    
+    <pre><code class="commandline">orbited</code></pre>
+    
+    <p>And in the other starting Rails:</p>
+    
+    <pre><code class="commandline">./script/server</code></pre>
+    
+    <p>Then point your browser at <a href="http://localhost:8000/chat">http://localhost:8000/chat</a>, and then open a second browser window and point it at <a href="http://127.0.0.1:8000/chat">http://127.0.0.1:8000/chat</a>, and test the application. It’s important to use the two different hostnames <tt>localhost</tt> and <tt>127.0.0.1</tt> because some browsers limit the number of open connections you can have to each hostname to two. With this limit it is impossible to run two instances of the chat application on the same host. Of course, <tt>127.0.0.1</tt> and <tt>localhost</tt> should refer to the same local machine, so its a good way of tricking the browser into thinking its talking to separate servers.</p>
+  </div>
+  
+  <div id="source">
+    <h2>Complete source code</h2>
+    <p><a href="http://orbited.org/svn/orbit/trunk/demos/ruby/railschat">RailsChat SVN repository</a></p>
+  </div>    
+  
+  <div id="conclusion">
+    <h2>Conclusion</h2>
+    <p>We now have a basic implementation of a chat application. The next obvious steps are authentication and timeout. For a more advanced example of a chat application checkout the <a href="http://orbited.org/svn/orbit/trunk/demos/python/webirc">webirc SVN Repository</a>. Webirc is an web-based IRC client written in Python with Twisted and Orbit. It deals with presence by sending regular pings to the browser.</p>
+    
+    <p>Another issue that we glossed over is that of cross-domain scripting. If you recall our <tt>orbited.cfg</tt> file for this tutorial, we enabled the Orbited proxy to dispatch requests to the chat server. The effect of this is that the browser only knows about the Orbited server and thinks that all of its communication with the chat server is actually coming from the Orbited server. This is important because browsers do not allow cross-domain scripting. This means that if we received events inside of an <tt>iframe</tt> that was served from <tt>localhost:8000</tt>, then we can’t make calls from the <tt>iframe</tt> to a parent window server from <tt>localhost:3000</tt> because it counts these as different domains. The proxy is an easy way to ignore the whole issue.</p>
+    
+    <p>Of course, on a production site it doesn’t make sense to use the Orbited proxy for a variety of reasons. There will likely be a mismatch between the number of Orbited nodes you have and the number of web nodes you have, so there is no sensible proxy mapping. More importantly though, the proxy adds latency to each request and uses additional processor. The proxy should therefore be treated as a development and testing tool only. Orbited comes with built-in solutions for handling cross-domain scripting. One of those solutions is the <tt>iframe_domain</tt> transport. It is nearly identical to the <tt>iframe</tt> transport except that it dispatches an initial <tt>&lt;script&gt;document.domain="hostname"&lt;/script&gt;</tt> to the browser right after its connected. “hostname” will be replaced with the top level hostname from the <tt>Host</tt> header of the request, with the port also stripped. So if the <tt>Host</tt> header is <tt>some.sub.domain.com:8000</tt>, then the initial script sent will be <tt>&lt;script&gt;document.domain="domain.com"&lt;/script&gt;</tt>.</p>
+    
+    <p>This problem is addressed in the JavaScript source of the webirc client as well, and you should take a look before you try to deploy your Orbit applications in a production environment.</p>
+  </div>
+</body>
+</html>
