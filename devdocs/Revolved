@@ -32,6 +32,7 @@ Mode 2 is likely the most scalable,
 mode 3 is likely the easiest to implement
 Mode 1 is the hardest to implement and the most unscalable.
 
+
 Presence:
 
 Group presence is only easily possible in Group Mode 1
