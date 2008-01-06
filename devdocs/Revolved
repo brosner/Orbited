@@ -50,6 +50,9 @@ User presence can be done in a couple ways
     pull: when a user wants to know the status of another user, they do a specialized send
     
     Push sounds more reasonable.
+    But push only lets you see people who have signed on since you have.
+    To solve this, when you sign on, publish to your own presence channel, "hello?"
+    And you'll get some specialized sends back.
 
 Connection:
     A user will provide a resource name upon connection.
