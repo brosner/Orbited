@@ -85,3 +85,48 @@ Revolved and Orbited
 A user can connect/authenticate to a given Orbited/Revolved node. If they connect to an incorrect node, they'll be given a REDIRECT command to the correct node.
 
 When they are successful, they will be given a local revolved session key. This is only locally (at that node) unique. The other nodes know only of their user and resource name.
+
+
+Revolved Scaling
+N = number fo nodes, X = number of users, G = number of groups, S1 = subscription density (subscriptions / group), S2 = sub density ( sub / user)
+
+Option 1: Fully Connected
+    Sends all events to all nodes
+    O(N^2) network connections
+    O(1) latency for sending to a particular user or 
+    O(N) network messages for sending to a particular user 
+    O(1) latency for sending to all users in a group
+    O(N) latency for sending to all users in a group
+    O(US2 + NG) memory usage for all subscriptions
+
+Option2: HaloD (Fully Connnected)
+    "sends" go to only one node, publications to all
+    O(N^2) network connections
+    O(1) latency for sending to a particular user
+    O(1) network messages for sending to a particular user
+    O(1) latency for sending to all users in a group
+    O(N) network messages for sending to all users in a group
+    O(US2 + N^2G) memory usage for all subscriptions
+
+Option 3: Chord-style
+    O(NlogN) network connections
+    O(logN) latency for sending to a particular user
+    O(logN) network messages for sending to a particular user
+    O(logN) latency for sending to all users in a group
+    O(N) network messages for sending to all users in a group
+    O(US2 + Nlog(N)G) memory usage for all subscrptions
+
+Option 4: HaloD with Chord overlay
+    O(N^2) network connections
+    O(1) latency for sending to a particular user
+    O(1) network messages for sending to a particular user
+    O(logN) network messages for sending to a particular user
+    O(logN) latency for sending to all users in a group
+    O(US2 + Nlog(N)G) memory usage for all subscrptions
+
+Option 5: Acyclic Network
+    O(N) network connections
+    O(..) latency for sending messages to a particular user
+    O(N) network messgaes for sending to a particular user
+    O(..) latency for sending to all users in a group
+    O(N) network messages for sending to all uers in a group
