@@ -1,0 +1,83 @@
+REVOLVED
+
+User Key: (Jon, Tetris)
+User Key: (Jon, Chatnews)
+
+Send a message to (Jon, Tetris): Publish to Hash(Jon, Tetris)
+Send a message to Jon: Publish to all nodes
+Send a message to Tetris: Publish to all nodes
+
+
+Hash(User, Resource) --> some number % 1024
+
+Peer messenging (send):
+    
+    A message is dispatched to the connected revolved node. It hashes the recipient and sends it to the appropriate node.
+
+    Two modes can be used:
+    The node sends failure notice of a message if the user isn't online
+    The ndoe doesn't send anything back.
+
+Groups:
+
+A revolved group is a set of subscriptions
+Mode 1:
+    Subscribe/unsubscribe is always broadcast for all users by all nodes
+Mode 2:
+    Subscribe/unsubscribe is always broadcast from a node if it doesn't have another subscription for that same group.
+Mode 3:
+    Subscribe/unsubscribe is never broadcast. All messages are replicated to all nodes and dispatched from there.
+
+Mode 2 is likely the most scalable, 
+mode 3 is likely the easiest to implement
+Mode 1 is the hardest to implement and the most unscalable.
+
+Presence:
+
+Group presence is only easily possible in Group Mode 1
+Group presence could also be possible by adding a membership query at the node level
+    How would one cache responses?
+    Is it even possible to do sanely?
+
+Group presence could also be done by adding a membership query at the group/publish level.
+    I ("me", "god") do publish("group name", "presence?")
+    And everyone who is here responds:
+    send(["me", "god"], ["presence!", "group name"])
+
+User presence can be done in a couple ways
+    push: when a user signs on they publish to their presence channel
+    pull: when a user wants to know the status of another user, they do a specialized send
+    
+    Push sounds more reasonable.
+
+Connection:
+    A user will provide a resource name upon connection.
+    A user may not perform any action besides authentication at this point.
+
+User Authentication:
+
+A user will connect under two modes
+Anonymous:
+    Provide a user name and security Token (default null)
+    If successful, will have this name
+    If successful, the authenticator can return an alternate anon name that the user will have
+
+Authenticated:
+    Provide a user name and security Token (required -- password)
+    If successful, user will have this name
+
+Perhaps Connect / Authenticate should just be one command?
+
+Channel Authentication
+
+After a successful join from a user, the security settings will be enforced for all publications
+The security settings will be given for a particular user as the ability to join, see presence, and/or publish. 
+
+A user must therefore authenticate to a channel even if s/he isn't going to join it, but merely publish to it.
+
+
+Revolved and Orbited
+
+A user can connect/authenticate to a given Orbited/Revolved node. If they connect to an incorrect node, they'll be given a REDIRECT command to the correct node.
+
+When they are successful, they will be given a local revolved session key. This is only locally (at that node) unique. The other nodes know only of their user and resource name.
