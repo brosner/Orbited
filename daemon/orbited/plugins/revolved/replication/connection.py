@@ -65,7 +65,7 @@ class ReplicationConnection(object):
             self.write_buffer.move(bsent)
             return True
         except io.socket.error, msg:
-            self.logger.debug('io.socket.error: %s' % msg)
+            logger.debug('io.socket.error: %s' % msg)
             self.close(msg)
             return None
         
