@@ -37,7 +37,6 @@ function quit() {
 }
 
 function chat_event(data) {
-  Orbited.log('we got to the callback, anyway')
   var type = data[0];
   var value = data[1];
   
