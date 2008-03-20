@@ -15,6 +15,7 @@
     TAB_KEY = 9
     
     $(document).ready(function(){
+      $('#channelName').html("#" + CHANNEL)
       $('#nickname').focus();
       
       $('#nickname').keypress( function(e) {
@@ -61,7 +62,7 @@
 <body>
   <div class="chatbox">
     <div id="signin_popup">
-      <h2>Sign in to the #orbited chat room.</h2>
+      <h2>Sign in to the <span id=channelName>#orbited</span> chat room.</h2>
       <label for="nickname">Nickname:</label>
   		<input type="text" name="nickname" id="nickname" maxlength="16" value="">
     </div>
