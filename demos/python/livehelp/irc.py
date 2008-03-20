@@ -5,15 +5,15 @@ PING_INTERVAL = 100
 PING_MISSED_MAX = 2
 
 class RelayClient(irc.IRCClient):
-    # channel = '#orbited_test'
-    channel = '#orbited'
-    def __init__(self, nickname, app, user_key):
+    def __init__(self, nickname, app, user_key, channel):
         self.nickname = nickname
         self.orbit = app.orbit
         self.app = app
         self.user_key = user_key
         self.ping_count = 0
         self.name_reply = None
+        self.channel = channel
+        print "self.channel is:", self.channel
     
     def chan_names(self, channel, names, symbols='@%+'):
         # next line transforms unsorted list of names to list
@@ -116,13 +116,14 @@ class RelayClient(irc.IRCClient):
 
 class RelayFactory(protocol.ClientFactory):
     protocol = RelayClient
-    def __init__(self, nickname, app, user_key):
+    def __init__(self, nickname, app, user_key, channel):
         self.nickname = nickname
         self.app = app
         self.user_key = user_key
+        self.channel = channel
     
     def buildProtocol(self, addr):
-        p = self.protocol(self.nickname, self.app, self.user_key)
+        p = self.protocol(self.nickname, self.app, self.user_key, self.channel)
         self.client = p
         return p
     

@@ -32,6 +32,8 @@ class App(object):
         # if request.url == '/connect':
         #     return self.connect(request)
         if request.url.startswith('/static/'):
+            if '?' in request.url:
+                request.url = request.url[:request.url.index('?')]
             return self.static(request)
         if hasattr(self, request.url[1:]):
             f = getattr(self, request.url[1:])
@@ -72,10 +74,10 @@ class App(object):
     def irc_quit(self, conn):
         del self.irc_connections[conn.nickname]
     
-    def send_intro(self, user):
+    def send_intro(self, user, channel):
         user_key = '%s, 0, /livehelp' % user
-        factory = RelayFactory(user,self,user_key)
-        reactor.connectTCP("penux", 6667, factory)
+        factory = RelayFactory(user,self,user_key, channel)
+        reactor.connectTCP("irc.freenode.org", 6667, factory)
         self.irc_connections[user] = factory
         # self.orbit.event([user_key], '<script>document.domain="meekle.com"</script>', False)
     
@@ -102,10 +104,11 @@ class App(object):
         # Create a new IRC connection
         # add it to dictionary user_name -> connection
         user = request.form['user']
+        channel = "#" + request.form['channel']
         if user in self.irc_connections:
             request.response.write('you are already connected/connecting')
             return request.response.send()            
-        reactor.callLater(1, self.send_intro, user)            
+        reactor.callLater(1, self.send_intro, user, channel)
         request.response.write("connecting...")
         request.response.send()
     connect.exposed = True

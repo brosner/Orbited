@@ -21,14 +21,14 @@ function connect() {
     nickname = $("#nickname").val();
     Orbited.log([chat_event, nickname, ORBIT_HOSTNAME + "/livehelp", "0"])
     Orbited.connect(chat_event, nickname, ORBIT_HOSTNAME + "/livehelp", "0");
-    request("/connect", {user:nickname});
+    request("/connect", {user:nickname, channel:CHANNEL});
     loggedOn = true;
   };
 };
 
 function chat() {
   msg = $('#chatbox_input').val();
-  request("/msg", {to:CHANNEL,user:nickname,msg:msg});
+  request("/msg", {to:"#" + CHANNEL,user:nickname,msg:msg});
   $('#chatbox_input').val('');
 }
 
@@ -143,7 +143,7 @@ function sanitize(str) {
 };
 
 function privmsg(sender, message, channel) {
-  if (channel != CHANNEL) {
+  if (channel != "#" + CHANNEL) {
     return false;
   };
   messagediv = $('<div class="message"></div>');
