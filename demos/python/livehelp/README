@@ -1,0 +1,10 @@
+This Demo is known to work with orbited==0.3.2 and pyorbited==0.2.2
+
+Step 0) install twisted (apt-get install twisted or easy_install twisted)
+        ( see www.twistedmatrix.com)
+Step 1) easy_install orbited==0.3.2 (See http://orbited.org/wiki/Installation)
+Step 2) in this directory, run orbited
+Step 3) in this directory, run start.py
+Step 4) Point your browser to http://127.0.0.1:8000/static/chat.html
+
+
