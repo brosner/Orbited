@@ -7,7 +7,7 @@
   <script src="jquery.js"></script>
   <script src="/_/orbited.js"></script>
   <script src="chat.js"></script>
-  <script src="lconfig.js"></script>
+  <script src="config.js"></script>
   <script src="mirc_colorize.js"></script>
   <script src="tabcompletion.js"></script>
   <script>
@@ -22,6 +22,12 @@
         var key = e.charCode || e.keyCode || 0
         if (key == ENTER_KEY) {
           connect();
+          $(window).unload( function() {
+            quit();
+          })
+          window.onbeforeunload = function() {
+             return 'Are you sure you want to quit and lose the chat connection?';
+          };
           $('#signin_popup, #absorb_clicks').hide();
           $('#chatbox_input').focus();
           return false;
@@ -50,13 +56,7 @@
         };
       });
       
-      $(window).unload( function() {
-        quit();
-      })
     });
-    window.onbeforeunload = function() {
-      return 'Are you sure you want to quit and lose the chat connection?';
-    };
   </script>
 </head>
 <body>
