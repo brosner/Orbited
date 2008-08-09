@@ -742,6 +742,135 @@ Orbited.TCPSocket.prototype.READY_STATE_CLOSED       = 5;
 
 
 
+
+// XXX: the Orbited.XSDR stuff (presumably) doesn't work yet.
+//      mcarter - 8-9-08 (~rev 476)
+
+Orbited.singleton.XSDR = {
+    receiveCbs: {},
+    queues: {},
+    id: 0,
+    register: function(receive, queue) {
+        var id = ++Orbited.singleton.XSDR;
+        Orbited.singleton.XSDR.receiveCbs[id] = receive;
+        Orbited.singleton.XSDR.queues[id] = queue;
+    }
+}
+
+Orbited.XSDR = function() {
+    var self = this;
+
+    var ifr = null;
+    var url;
+    var method;
+    var data;
+    var requestHeaders;
+    var queue = []
+    var id = Orbited.singleton.XSDR.register(
+        function(data) { receive(data) }, 
+        queue
+    )
+    var bridgeUrl = new URL("")
+    bridgeUrl.domain = Orbited.hostname
+    bridgeUrl.port = Orbited.port
+    bridgeUrl.path = '/static/xsdrBridge.html'
+    bridgeUrl.hash = id;
+    
+    var reset = function() {
+        self.responseText = ""
+        self.status = null;
+        self.readyState = 0;
+        url = null;
+        method = null;
+        data = null;
+        requestHeaders = {};
+
+    }
+    reset();
+
+    self.open = function(_method, _url, async) {
+        if (self.readyState == 4) {
+            reset();
+        }
+        if (self.readyState != 0) {
+            throw new Error("Invalid readyState");
+        }
+        if (!async) {
+            throw new Error("Only Async XSDR supported")
+        }
+        self.readyState = 1;
+        url = _url;
+        method = _method;        
+    }
+
+    self.send = function(data) {
+        if (self.readyState != 1) {
+            throw new Error("Invalid readyState");
+        }
+        if (!ifr) {
+            ifr = document.createElement("iframe")
+            hideIframe(ifr);
+            ifr.src = bridgeUrl.render()
+            document.body.appendChild(ifr);
+        }
+        else {
+            queue.push([method, url, data, requestHeaders]);
+        }
+    }
+
+    self.abort = function() {
+        if (self.readyState > 0 && self.readyState < 4) {
+            queue.push(['ABORT']);
+        }
+    }
+
+    self.setRequestHeader = function(key, val) {
+        if (self.readyState != 0) {
+            throw new Error("Invalid readyState");
+        }
+        requestHeaders[key] = val;
+    }
+
+    self.getResponseHeader = function() {
+        if (self.readyState < 2) {
+            throw new Error("Invalid readyState");
+        }
+        return responseHeaders[key]
+    }
+
+    var receive = function(payload) {
+        switch(payload[0]) {
+            case 'initialize':
+                push([method, url, data, requestHeaders]);
+                break;
+            case 'readystatechange':
+                var data = payload[1]
+                self.readyState = data.readyState
+                if (data.status) {
+                    self.status = data.status
+                }
+                if (data.responseText) {
+                    self.responseText += data.responseText
+                }
+                self.onreadystatechange();
+        }
+    }
+
+    var hideIframe =function (ifr) {
+        ifr.style.display = 'block';
+        ifr.style.width = '0';
+        ifr.style.height = '0';
+        ifr.style.border = '0';
+        ifr.style.margin = '0';
+        ifr.style.padding = '0';
+        ifr.style.overflow = 'hidden';
+        ifr.style.visibility = 'hidden';
+    }
+    
+}
+Orbited.XSDR.prototype.logger = Orbited.getLogger("Orbited.XSDR");
+
+
 /* Comet Transports!
  */
 

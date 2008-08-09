@@ -3,7 +3,7 @@ from twisted.web import server, resource, static, error
 from twisted.internet import defer, reactor
 logger = logging.get_logger('orbited.transports.base.CometTransport')
 class CometTransport(resource.Resource):
-  
+    HEARTBEAT_INTERVAL = 5
     
   
     def __init__(self, conn):
@@ -23,7 +23,7 @@ class CometTransport(resource.Resource):
         return server.NOT_DONE_YET
     
     def resetHeartbeat(self):
-        self.heartbeatTimer = reactor.callLater(5, self.doHeartbeat)
+        self.heartbeatTimer = reactor.callLater(self.HEARTBEAT_INTERVAL, self.doHeartbeat)
         
     def doHeartbeat(self):
         if self.closed:

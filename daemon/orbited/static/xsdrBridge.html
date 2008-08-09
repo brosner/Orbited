@@ -1,0 +1,179 @@
+<html>
+ <head>
+     <script src="JSON.js"></script>
+
+<script>
+
+var origDomain = document.domain
+var topDomain = null;
+var id = parseInt(location.hash.slice(1));
+//var id = location.hash
+var parts = document.domain.split('.')
+var req = null;
+var isOpera = !!window.opera
+// Posts a message in JSON string format to the parent document, issuing the request
+function postMessageToParent(msg)
+{
+        var target = parent.postMessage ? parent : (parent.document.postMessage ? parent.document : undefined);
+        if (typeof target != "undefined") {
+            target.postMessage(msg, "*");
+        }
+};
+
+
+function push(data) {
+
+    if (isOpera) {
+        postMessageToParent("event " + id + " " + JSON.stringify(data));
+    }
+    else {
+        document.domain = topDomain
+        parent.Orbited.singleton.XSDR.receiveCbs[id](data)
+        try {
+            document.domain = origDomain;
+        }
+        catch(e) {
+        }
+    }        
+}
+if (!isOpera)
+    if (parts.length == 1) {
+        try {
+            document.domain = document.domain
+            parent.Orbited
+            topDomain = document.domain
+        }
+        catch(e) {
+        }
+    }
+    else {
+        for (var i = 0; i < parts.length-1; ++i) {
+            document.domain = parts.slice(i).join(".")
+            try {
+                parent.Orbited
+                topDomain = document.domain
+                break;
+            }
+            catch(e) {
+    //            alert(e.name + ': ' + e.message)
+            }
+        }
+    }
+}
+if (topDomain == null)
+    throw new Error("Invalid document.domain for cross-frame communication")
+
+push(['initialized'])
+
+try {
+    document.domain = origDomain
+}
+catch(e) {
+}
+
+
+function getNext() {
+    document.domain = topDomain
+    var queue = parent.Orbited.singleton.XSDR.queues[id]
+//    alert('queue: ' + parent.JSON.stringify(queue))
+    var data = null
+    if (queue.length > 0)
+        data = queue.shift();
+    try {
+        document.domain = origDomain;
+    }
+    catch(e) {
+    }
+    return data
+}
+
+// Sends a message to the parent, requesting it to send the next request on
+// the queue. The result is handled in the message receiver handler
+function sendGetNext() {
+    document.domain = topDomain;
+    postMessageToParent("queues " + id);
+}
+
+function checkAbort() {
+    if (isOpera)    
+
+
+function doNextRequest() {
+    if (isOpera)
+        sendGetNext()
+    else
+        req = getNext();
+
+    if (req == null) {
+        return setTimeout(doNextRequest, 10);
+    }
+
+    var smethod = req[0]
+    var surl = req[1]
+    var spayload = req[2];
+    var sheaders = req[3];
+
+    var xhr = createXHR();
+    var responseIndex = 0;
+    xhr.onreadystatechange = function() {
+        var payload = {
+            readyState: xhr.readyState
+        }
+        if (xhr.readyState == 3) {
+            try {
+                var data = xhr.responseText.slice(responseIndex)
+                responseIndex = xhr.responseText.length;
+                payload['responseText'] = data;
+            }
+            catch(e) {
+//                alert('status..?');
+            }
+        }
+        if (xhr.readyState == 4) {
+            payload['responseText'] = xhr.responseText.slice(responseIndex)
+            payload['status'] = xhr.status
+            push(["readystatechange", payload])
+            req = null;
+            return doNextRequest();
+        }
+        push(["readystatechange", payload])
+    }
+//    alert('xhr.open(' + smethod + ', ' + surl + ', true)');
+//    alert('document.domain: ' + document.domain);
+    xhr.open(smethod, surl, true)
+    for (key in sheaders) {
+        xhr.setRequestHeader(key, sheaders[key])
+    }
+    xhr.send(spayload);
+}
+
+// TODO DRY this is also in BaseTCPConnection.js
+var createXHR = function() {
+    try { return new XMLHttpRequest(); } catch(e) {}
+    try { return new ActiveXObject('MSXML3.XMLHTTP'); } catch(e) {}
+    try { return new ActiveXObject('MSXML2.XMLHTTP.3.0'); } catch(e) {}
+    try { return new ActiveXObject('Msxml2.XMLHTTP'); } catch(e) {}
+    try { return new ActiveXObject('Microsoft.XMLHTTP'); } catch(e) {}
+    return null;
+};
+
+
+if (isOpera)
+{
+    // Message receiver handler (req. for Opera compatibility)
+    document.addEventListener('message', function(e) {
+        var msg = e.data;
+        var response = JSON.parse(msg);
+        req = response;
+    }
+    , false
+    );  
+}
+
+
+</script>
+</head>
+<body onload="doNextRequest()">
+ <h1>Sub Domain</h1>
+</body>
+</html>
