@@ -1,4 +1,4 @@
-def formatBlock(s):
+def format_block(s):
     ''' Formatter for block strings to be sent as HTTP.
         (so they can be written cleanly in python classes)
     

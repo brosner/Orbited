@@ -1,19 +1,21 @@
-class JsonHolder(object):
-    pass
-json = JsonHolder()
+"""
+Select a JSON library from any of several known libraries.
+"""
+
 try:
     import cjson
-    print "json handler: cjson"
-    json.encode = cjson.encode
-    json.decode = cjson.decode
+    encode = cjson.encode
+    decode = cjson.decode
 except ImportError:
     try:
         import simplejson
-        print "json handler: simplejson"
-        json.encode = simplejson.dumps
-        json.decode = simplejson.loads
+        encode = simplejson.dumps
+        decode = simplejson.loads
     except ImportError:
-        import json as pyjson
-        print "json handler: python-json"
-        json.encode = pyjson.write
-        json.decode = pyjson.read
+        try:
+            import demjson
+            encode = demjson.encode
+            decode = demjson.decode
+        except ImportError:
+            raise ImportError, "could not load one of: cjson, simplejson, demjson"
+        

@@ -1,96 +1,131 @@
+from optparse import OptionParser
+import os
+import os.path
+import sys
+
 map = {
     '[global]': {
-        'op.port': '9000',
-        'http.port': '8000',
-        'admin.enabled': '0',
-        'proxy.enabled': '1',
-        'proxy.keepalive': '1',
-        'proxy.keepalive_default_timeout': 300,
-        'log.enabled': '1',
-        'session.default_key': '0', # TODO: change to token.default_key
-        'session.timeout': 5,
-        'event.retry_limit': 1
+        #'reactor': 'epoll',
+
+        #'proxy.enabled': '1',
+
+        'pid.location': '/tmp/orbited.pid'
     },
-    '[transport]': {
-        'default': 'stream',
-        'xhr.timeout': '30',
+
+    '[logging]': {
+        'debug': 'SCREEN',
+        'info': 'SCREEN',
+        'access': 'SCREEN',
+        'warn': 'SCREEN',
+        'error': 'SCREEN',
+        'enabled.default': 'info,access,warn,error',
     },
-    '[admin]': {
-        'admin.port': '9001'
+
+    '[loggers]': {
+        #'orbited.start': 'debug,info,access,warn,error',
     },
-    '[proxy]': [
-        # ('/', ('69.60.117.172', 80)),
-        # ('/', ('ORBITED', None)),
+
+    '[listen]': [
+        #'http://:8001',
     ],
-    '[log]': {
-        'type': 'basic',
-        'level': 'INFO',
-        # 'type': 'file',
-        # 'location': 'logging.conf'
-        # 'log.access': ('screen',),
-        # 'log.error': ('screen',),
-        # 'log.event': ('screen',)
+
+    '[ssl]': {
+        #'key': 'orbited.key',
+        #'crt': 'orbited.crt',
     },
-    'default_config': 1, # set to 0 later if we load a config file
+
+    '[access]': [
+        #('irc.freenode.net', 6667),
+    ],
+
+    '[static]': {
+        #'tmp': '/tmp',
+    }
 }
 
 def update(**kwargs):
     map.update(kwargs)
     return True
 
-def load(filename):
-    try:
-        f = open(filename)
-        lines = [line.strip() for line in f.readlines()]
-        map['default_config'] = 0
-    
-    except IOError:    
-        print filename, 'could not be found. Using default configuration'
-        return False
-        # lines = default.split('\n')
-    
+def setup(argv):
+    parser = OptionParser()
+    parser.add_option(
+        "--config",
+        dest="config",
+        type="string",
+        default=None,
+        help="path to configuration file"
+    )
+    (options, args) = parser.parse_args(argv)
+
+    # NB: args[0] is the command name that started orbited.
+    if len(args) != 1:
+        parser.error('unexpected positional command line arguments; aborting.')
+
+    if not options.config:
+        # no config file specified, try to search it.
+        paths = [
+            os.path.join('/', 'etc', 'orbited.cfg'),
+            os.path.join('/', 'Program Files', 'Orbited', 'etc', 'orbited.cfg'),
+            'orbited.cfg',
+        ]
+        for path in paths:
+            if os.path.exists(path):
+                options.config = path
+                break
+
+    if not options.config:
+        parser.error('unable to find the configuration file, please specify it in the --config command line argument; aborting.')
+
+    _load(open(options.config, 'r'))
+
+def _load(f):
+    # TODO why not use a python file as the configuration file?
+    lines = [line.strip() for line in f.readlines()]
+    map['default_config'] = 0    
     section = None
-    for line in lines:
-        
-        # ignore comments
-        if '#' in line:
-            line, comment = line.split('#', 1)
-        if not line:
-            continue
-        
-        # start of new section; create a dictionary for it in map if one
-        # doesn't already exist
-        if line.startswith('[') and line.endswith(']'):
-            section = line
-            if section not in map:
-                map[section]  = {}
-            continue
-        
-        # assign each source in the proxy section to a target address and port
-        if section == '[proxy]':
-            source, target = [side.strip() for side in line.split('->')]
-            if target.startswith('http://'):
-                target = target[7:]
-            if ':' in target:
-                addr, port = target.split(':', 1)
-                port = int(port)
-            else:
-                addr, port = target, 80
-            map[section].append((source, (addr, port)))
-            continue
-        
-        # skip lines which do not assign a value to a key
-        if '=' not in line:
-            continue
-        
-        key, value = [side.strip() for side in line.split('=', 1)]
-        
-        # in log section, value should be a tuple of one or two values
-        if section == '[log]':
-            value = tuple([val.strip() for val in value.split(',', 1)])
-        
-        map[section][key] = value
-    
-    print 'CONFIG'
-    print map
+    try:
+        for (i, line) in enumerate(lines):
+            # ignore comments and empty lines.
+            if '#' in line:
+                line, comment = line.split('#', 1)
+                line = line.strip()
+            if not line:
+                continue
+            
+            # start of new section; create a dictionary for it in map if one
+            # doesn't already exist
+            if line.startswith('[') and line.endswith(']'):
+                section = line
+                if section not in map:
+                    map[section]  = {}
+                continue
+            
+            # assign each source in the proxy section to a target address and port
+            if section == '[access]':
+                if ':' in line:
+                    addr, port = line.split(':', 1)
+                    port = int(port)
+                else:
+                    addr, port = target, 80
+                map[section].append((addr, port))
+                continue
+            if section == '[listen]':
+                map[section].append(line)
+                continue
+            
+            # skip lines which do not assign a value to a key
+            if '=' not in line:
+                raise Exception('parse error on line %d' % i)
+            
+            key, value = [side.strip() for side in line.split('=', 1)]
+            
+            # in log section, value should be a tuple of one or two values
+            if section == '[log]':
+                value = tuple([val.strip() for val in value.split(',', 1)])
+            
+            map[section][key] = value
+    except Exception, e:
+        print >>sys.stderr, 'failed to load configuration file: %s; aborting.' % e
+        sys.exit(-1)
     return True

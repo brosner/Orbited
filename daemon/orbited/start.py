@@ -1,126 +1,94 @@
-#import psyco
-#psyco.full()
-import sys
 import os
-#sys.path.insert(0, os.path.abspath('.'))
-from orbited import config
-from orbited.app import Application
-from orbited import transport
-from orbited import plugin
-from orbited.http import router
+import sys
+import urlparse
 
-server = None
+from orbited import config
+from orbited import logging
+
+# NB: this is set after we load the configuration at "main".
+logger = None
+
+def _import(name):
+    module_import = name.rsplit('.', 1)[0]
+    return reduce(getattr, name.split('.')[1:], __import__(module_import))
+
+def _setup_protocols(root):
+    from twisted.internet import reactor
+    protocols = [
+        #child_path config_key  port_class_import,              factory_class_import
+        ('tcp',     'proxy',    'orbited.cometsession.Port',    'orbited.proxy.ProxyFactory'),
+    ]
+    for child_path, config_key, port_class_import, factory_class_import in protocols:
+        if config.map['[global]'].get('%s.enabled' % config_key) == '1':
+            port_class = _import(port_class_import)
+            factory_class = _import(factory_class_import)
+            reactor.listenWith(port_class, factory=factory_class(), resource=root, childName=child_path)
+            logger.info('%s protocol active' % config_key)
+
+def _setup_static(root):
+    from twisted.web import static
+    for key, val in config.map['[static]'].items():
+        if key == 'INDEX':
+            key = ''
+        if root.getStaticEntity(key):
+            logger.error("cannot mount static directory with reserved name %s" % key)
+            sys.exit(-1)
+        root.putChild(key, static.File(val))
 
 def main():
-    load()
-    do_start()
+    # load configuration from configuration file and from command
+    # line arguments.
+    config.setup(sys.argv)
 
-def load():
-    global server
-    # Config
-    config_file = 'orbited.cfg'
-    if len(sys.argv) > 1:
-        config_file = sys.argv[1]
-    config.load(config_file)
-    # Transports
-    transport.load_transports()
-    
-    # Plugins
-    plugin.load()
-    
-    # Setup Router
-    router.setup()
-    server = Application()
-    
-    
-    
-def do_start(): 
-    global server  
-    # Create Server
-    
-    # Start Server
-    server.start()
-    
-    
-def daemon():
-    # Daemonize function for unix
-    # modified from http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/66012
-    # and redirect to null modified from:
-    #    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/278731
-    
-    load()
-    import os
-    if (hasattr(os, "devnull")):
-        REDIRECT_TO = os.devnull
-    else:
-        REDIRECT_TO = "/dev/null"
-  
-    # do the UNIX double-fork magic, see Stevens' "Advanced 
-    # Programming in the UNIX Environment" for details (ISBN 0201563177)
-    try: 
-        pid = os.fork() 
-        if pid > 0:
-            # exit first parent
-            sys.exit(0) 
-    except OSError, e: 
-        print >>sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror) 
-        sys.exit(1)
+    logging.setup(config.map)
 
-    # decouple from parent environment
-    os.chdir("/") 
-    os.setsid() 
-    os.umask(0) 
+    # we can now safely get loggers.
+    global logger; logger = logging.get_logger('orbited.start')
 
-    # do second fork
-    try: 
-        pid = os.fork() 
-        if pid > 0:
-            # exit from second parent, print eventual PID before
-            print "Daemon PID %d" % pid 
-            sys.exit(0) 
-    except OSError, e: 
-        print >>sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror) 
-        sys.exit(1) 
-        
-#    import resource      # Resource usage information.
-#    maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-#    if (maxfd == resource.RLIM_INFINITY):
-#        maxfd = MAXFD
-  
-   # Iterate through and close all file descriptors.
-#    for fd in range(0, maxfd):
-#        try:
-#            os.close(fd)
-#        except OSError:   # ERROR, fd wasn't open to begin with (ignored)
-#            pass
-    
-    infd = sys.stdin.fileno()
-    outfd = sys.stdout.fileno()
-    errfd = sys.stderr.fileno()
-    os.close(infd)
-    os.close(outfd)
-    os.close(errfd)
-    os.open(REDIRECT_TO, os.O_RDWR)  # standard input (0)
+    # NB: we need to install the reactor before using twisted.
+    reactor_name = config.map['[global]'].get('reactor')
+    if reactor_name:
+        install = _import('twisted.internet.%sreactor.install' % reactor_name)
+        install()
+        logger.info('using %s reactor' % reactor_name)
 
-    # Duplicate standard input to standard output and standard error.
-    os.dup2(0, 1)            # standard output (1)
-    os.dup2(0, 2)            # standard error (2)
-        
-        
-    do_start()
-    
-def daemon2():
-    from daemonize import createDaemon
-    f = open('testdaemon', 'w')
-    f.write('calling createDaemon\n')
-    f.flush()
-    createDaemon()
-    f.write('called createDaemon\n')
-    f.flush()
-    import sys
-    sys.stdout = f
-    main()
+    from twisted.internet import reactor
+    from twisted.web import resource
+    from twisted.web import server
+    from twisted.web import static
 
+    root = resource.Resource()
+    static_files = static.File(os.path.join(os.path.dirname(__file__), 'static'))
+    root.putChild('static', static_files)
+    site = server.Site(root)
 
-if __name__ == '__main__':
+    _setup_protocols(root)
+    _setup_static(root)
+
+    for addr in config.map['[listen]']:
+        url = urlparse.urlparse(addr)
+        hostname = url.hostname or ''
+        if url.scheme == 'http':
+            logger.info('Listening http@%s' % url.port)
+            reactor.listenTCP(url.port, site, interface=hostname)
+        elif url.scheme == 'https':
+            from twisted.internet import ssl
+            crt = config.map['[ssl]']['crt']
+            key = config.map['[ssl]']['key']
+            try:
+                ssl_context = ssl.DefaultOpenSSLContextFactory(key, crt)
+            except ImportError:
+                raise
+            except:
+                logger.error("Error opening key or crt file: %s, %s" % (key, crt))
+                sys.exit(-1)
+            logger.info('Listening https@%s (%s, %s)' % (url.port, key, crt))
+            reactor.listenSSL(url.port, site, ssl_context, interface=hostname)
+        else:
+            logger.error("Invalid Listen URI: %s" % addr)
+            sys.exit(-1)
+
+    reactor.run()
+
+if __name__ == "__main__":
     main()
