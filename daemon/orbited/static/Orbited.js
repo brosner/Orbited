@@ -80,7 +80,6 @@ if (typeof(ActiveXObject) != "undefined") {
     if (window.btoa && window.btoa('1') == 'MQ==') {
         Orbited.base64.encode = function(data) { return btoa(data) };
         Orbited.base64.decode = function(data) { return atob(data) };
-        console.log('using btoa and atob')
         return
     }
 
