@@ -37,6 +37,9 @@ function push(data) {
 }
 logger = null;
 function debug() {
+    if (isOpera) {
+        return
+    }
     document.domain = topDomain
     logger.debug.apply(logger, arguments)
     try {
