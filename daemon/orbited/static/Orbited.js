@@ -340,7 +340,14 @@ Orbited.CometSession = function() {
      */
     self.open = function(_url) {
         self.readyState = self.READY_STATE_OPENING;
-        xhr = createXHR();
+        var url = new Orbited.URL(_url)
+        if (url.isSameDomain(location.href)) {
+            xhr = createXHR();
+        }
+        else {
+            xhr = new Orbited.XSDR();
+        }
+//        xhr = createXHR();
         xhr.open('GET', _url, true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
@@ -538,7 +545,7 @@ Orbited.CometSession = function() {
 ;;;     self.logger.debug('setting sending=true');
         var numSent = sendQueue.length
         sessionUrl.setQsParameter('ack', lastPacketId)
-        xhr = createXHR();
+//        xhr = createXHR();
         xhr.onreadystatechange = function() {
 ;;;         self.logger.debug('send readyState', xhr.readyState)
 ;;;         try {
@@ -751,12 +758,13 @@ Orbited.singleton.XSDR = {
     queues: {},
     id: 0,
     register: function(receive, queue) {
-        var id = ++Orbited.singleton.XSDR;
+        var id = ++Orbited.singleton.XSDR.id;
         Orbited.singleton.XSDR.receiveCbs[id] = receive;
         Orbited.singleton.XSDR.queues[id] = queue;
+;;;     Orbited.system.debug('id is', id)
+        return id;
     }
 }
-
 Orbited.XSDR = function() {
     var self = this;
 
@@ -770,12 +778,15 @@ Orbited.XSDR = function() {
         function(data) { receive(data) }, 
         queue
     )
-    var bridgeUrl = new URL("")
-    bridgeUrl.domain = Orbited.hostname
-    bridgeUrl.port = Orbited.port
+    var bridgeUrl = new Orbited.URL("")
+    bridgeUrl.domain = Orbited.settings.hostname
+    bridgeUrl.port = Orbited.settings.port
     bridgeUrl.path = '/static/xsdrBridge.html'
-    bridgeUrl.hash = id;
-    
+    bridgeUrl.hash = id.toString();
+    bridgeUrl.protocol = Orbited.settings.protocol
+;;; self.logger.debug('bridgeUrl.hash is', bridgeUrl.hash);
+;;; self.logger.debug('bridgeUrl.path is', bridgeUrl.path);
+;;; self.logger.debug('bridgeUrl is', bridgeUrl.render());
     var reset = function() {
         self.responseText = ""
         self.status = null;
@@ -787,7 +798,7 @@ Orbited.XSDR = function() {
 
     }
     reset();
-
+    self.onreadystatechange = function() { }
     self.open = function(_method, _url, async) {
         if (self.readyState == 4) {
             reset();
@@ -798,6 +809,7 @@ Orbited.XSDR = function() {
         if (!async) {
             throw new Error("Only Async XSDR supported")
         }
+;;;     self.logger.debug('open', _method, _url, async)
         self.readyState = 1;
         url = _url;
         method = _method;        
@@ -807,10 +819,13 @@ Orbited.XSDR = function() {
         if (self.readyState != 1) {
             throw new Error("Invalid readyState");
         }
+;;;     self.logger.debug('send', data)
         if (!ifr) {
+;;;         self.logger.debug('creating iframe')
             ifr = document.createElement("iframe")
             hideIframe(ifr);
             ifr.src = bridgeUrl.render()
+;;;         self.logger.debug('set ifr.src to', ifr.src);
             document.body.appendChild(ifr);
         }
         else {
@@ -839,9 +854,12 @@ Orbited.XSDR = function() {
     }
 
     var receive = function(payload) {
+;;;     self.logger.debug('received', payload)
         switch(payload[0]) {
-            case 'initialize':
-                push([method, url, data, requestHeaders]);
+            case 'initialized':
+                queue.push([method, url, data, requestHeaders]);
+;;;             self.logger.debug('queue is', queue)
+;;;             self.logger.debug('Orbited.singleton.XSDR.queues[id] is', Orbited.singleton.XSDR.queues[id])
                 break;
             case 'readystatechange':
                 var data = payload[1]
@@ -869,7 +887,7 @@ Orbited.XSDR = function() {
     
 }
 Orbited.XSDR.prototype.logger = Orbited.getLogger("Orbited.XSDR");
-
+Orbited.singleton.XSDRBridgeLogger = Orbited.getLogger('XSDRBridge');
 
 /* Comet Transports!
  */
@@ -915,7 +933,7 @@ Orbited.CometTransports.XHRStream = function() {
                 xhr = createXHR();
             }
             else {
-                xhr = new XSubdomainRequest(url.domain, url.port);
+                xhr = new Orbited.XSDR();
             }
         }
         url.path += '/xhrstream'

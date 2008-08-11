@@ -20,7 +20,6 @@ function postMessageToParent(msg)
         }
 };
 
-
 function push(data) {
 
     if (isOpera) {
@@ -36,11 +35,21 @@ function push(data) {
         }
     }        
 }
-if (!isOpera)
+logger = null;
+function debug() {
+    document.domain = topDomain
+    logger.debug.apply(logger, arguments)
+    try {
+        document.domain = origDomain;
+    }
+    catch(e) {
+    }
+}
+if (!isOpera) {
     if (parts.length == 1) {
         try {
             document.domain = document.domain
-            parent.Orbited
+            logger = parent.Orbited.singleton.XSDRBridgeLogger
             topDomain = document.domain
         }
         catch(e) {
@@ -50,7 +59,7 @@ if (!isOpera)
         for (var i = 0; i < parts.length-1; ++i) {
             document.domain = parts.slice(i).join(".")
             try {
-                parent.Orbited
+                logger = parent.Orbited.singleton.XSDRBridgeLogger
                 topDomain = document.domain
                 break;
             }
@@ -59,12 +68,10 @@ if (!isOpera)
             }
         }
     }
-}
 if (topDomain == null)
     throw new Error("Invalid document.domain for cross-frame communication")
-
+}
 push(['initialized'])
-
 try {
     document.domain = origDomain
 }
@@ -73,9 +80,10 @@ catch(e) {
 
 
 function getNext() {
+//    alert(
     document.domain = topDomain
     var queue = parent.Orbited.singleton.XSDR.queues[id]
-//    alert('queue: ' + parent.JSON.stringify(queue))
+//    alert('queue: ' + queue.length)
     var data = null
     if (queue.length > 0)
         data = queue.shift();
@@ -96,18 +104,17 @@ function sendGetNext() {
 
 function checkAbort() {
     if (isOpera)    
-
+        return
+}
 
 function doNextRequest() {
-    if (isOpera)
-        sendGetNext()
-    else
+//    if (isOpera)
+//        sendGetNext()
+//    else
         req = getNext();
-
     if (req == null) {
         return setTimeout(doNextRequest, 10);
     }
-
     var smethod = req[0]
     var surl = req[1]
     var spayload = req[2];
@@ -119,27 +126,25 @@ function doNextRequest() {
         var payload = {
             readyState: xhr.readyState
         }
-        if (xhr.readyState == 3) {
-            try {
-                var data = xhr.responseText.slice(responseIndex)
-                responseIndex = xhr.responseText.length;
-                payload['responseText'] = data;
-            }
-            catch(e) {
-//                alert('status..?');
-            }
-        }
-        if (xhr.readyState == 4) {
-            payload['responseText'] = xhr.responseText.slice(responseIndex)
+        try {
             payload['status'] = xhr.status
-            push(["readystatechange", payload])
+        }
+        catch(e) {           
+        }
+        try {
+            var data = xhr.responseText.slice(responseIndex)
+            responseIndex = xhr.responseText.length;
+            payload['responseText'] = data;
+        }
+        catch(e) {
+        }
+        push(["readystatechange", payload])
+
+        if (xhr.readyState == 4) {
             req = null;
             return doNextRequest();
         }
-        push(["readystatechange", payload])
     }
-//    alert('xhr.open(' + smethod + ', ' + surl + ', true)');
-//    alert('document.domain: ' + document.domain);
     xhr.open(smethod, surl, true)
     for (key in sheaders) {
         xhr.setRequestHeader(key, sheaders[key])
@@ -158,8 +163,7 @@ var createXHR = function() {
 };
 
 
-if (isOpera)
-{
+if (isOpera) {
     // Message receiver handler (req. for Opera compatibility)
     document.addEventListener('message', function(e) {
         var msg = e.data;
