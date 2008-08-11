@@ -886,6 +886,33 @@ Orbited.XSDR = function() {
     }
     
 }
+
+if (Orbited.util.browser == "opera")
+{
+    document.addEventListener('message', function(e) {
+        var msg = e.data.split(" ");
+        var cmd = msg.shift();
+        if (cmd == "event") 
+        {
+            var id = msg.shift();
+            var dataString = msg.join(" ");
+            var data = JSON.parse(dataString);
+    
+            Orbited.singleton.XSDR.receiveCbs[id](data)
+        }
+        if (cmd == "queues")
+        {
+            var id = msg.shift();
+            var queue = XSubdomainRequest.prototype._state.queues[id];
+            if (queue.length > 0) {
+                var data = queue.shift();
+                e.source.postMessage(JSON.stringify(data), e.origin);
+            }
+        }
+    }, false
+    );
+}
+
 Orbited.XSDR.prototype.logger = Orbited.getLogger("Orbited.XSDR");
 Orbited.singleton.XSDRBridgeLogger = Orbited.getLogger('XSDRBridge');
 
@@ -952,10 +979,10 @@ Orbited.CometTransports.XHRStream = function() {
             
             xhr.open('GET', url.render(), true)
             xhr.onreadystatechange = function() {
+;;;             self.logger.debug(xhr.readyState);
                 if (self.readyState == 2) { 
                     return
                 }
-;;;             self.logger.debug(xhr.readyState);
                 switch(xhr.readyState) {
                     case 2:
                         // If we can't get the status, then we didn't actually
@@ -1483,6 +1510,6 @@ Orbited.URL = function(_url) {
 
 }
 
-
-
 })();
+
+
