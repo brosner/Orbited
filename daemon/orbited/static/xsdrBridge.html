@@ -11,6 +11,7 @@ var id = parseInt(location.hash.slice(1));
 var parts = document.domain.split('.')
 var req = null;
 var isOpera = !!window.opera
+
 // Posts a message in JSON string format to the parent document, issuing the request
 function postMessageToParent(msg)
 {
@@ -103,7 +104,6 @@ function getNext() {
 // Sends a message to the parent, requesting it to send the next request on
 // the queue. The result is handled in the message receiver handler
 function sendGetNext() {
-    document.domain = topDomain;
     postMessageToParent("queues " + id);
 }
 
@@ -113,10 +113,11 @@ function checkAbort() {
 }
 
 function doNextRequest() {
-//    if (isOpera)
-//        sendGetNext()
-//    else
+    if (isOpera)
+        sendGetNext()
+    else
         req = getNext();
+
     if (req == null) {
         return setTimeout(doNextRequest, 20);
     }
