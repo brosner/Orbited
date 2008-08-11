@@ -1,5 +1,3 @@
-import base64
-
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientCreator
 from twisted.internet.protocol import Factory
@@ -26,7 +24,6 @@ class ProxyIncomingProtocol(Protocol):
         # TODO: add handshake timer
         self.logger.debug("connectionMade")
         self.state = 'handshake'
-        self.binary = False
         # TODO rename this to outgoingProtocol
         self.outgoingConn = None
         
@@ -37,19 +34,15 @@ class ProxyIncomingProtocol(Protocol):
         #     we receive whole frames here.
         self.logger.debug('dataReceived: data=%r' % data)
         self.logger.debug('self.outgoingConn is', self.outgoingConn)
-        self.logger.debug('self.binary', self.binary)
 
         if self.outgoingConn:
             # NB: outgoingConn is-a ProxyOutgoingProtocol
-            if self.binary:
-                data = base64.b64decode(data)
             self.logger.debug("write (out): %r" % data)
             return self.outgoingConn.transport.write(data)
         if self.state == "handshake":
             try:
                 data = data.strip()
-                self.binary = (data[0] == '1')
-                host, port = data[1:].split(':')
+                host, port = data.split(':')
                 port = int(port)
             except:
                 self.logger.error("failed to connect on handshake", tb=True)
@@ -62,7 +55,7 @@ class ProxyIncomingProtocol(Protocol):
                 self.transport.write("0" + str(ERRORS['Unauthorized']))
                 self.transport.loseConnection()
                 return
-            self.logger.access('new %s connection from %s:%s to %s:%d' % (self.binary and 'binary' or 'text', peer.host, peer.port, host, port))
+            self.logger.access('new connection from %s:%s to %s:%d' % (peer.host, peer.port, host, port))
             self.state = 'connecting'
             client = ClientCreator(reactor, ProxyOutgoingProtocol, self)
             client.connectTCP(host, port)
@@ -77,8 +70,6 @@ class ProxyIncomingProtocol(Protocol):
         if self.outgoingConn:
             self.outgoingConn.transport.loseConnection()
 
-    # XXX the wording is confusing;  shouldn't this be called
-    #     outgoingConnectionEstablished?  dito for remoteConnectionLost.
     def outgoingConnectionEstablished(self, outgoingConn):
         if self.state == 'closed':
             return outgoingConn.transport.loseConnection()
@@ -91,8 +82,7 @@ class ProxyIncomingProtocol(Protocol):
         self.transport.loseConnection()
 
     def write(self, data):
-        if self.binary:
-            data = base64.b64encode(data)
+#        data = base64.b64encode(data)
         self.logger.debug("write %r" % data)
         self.transport.write(data)
 

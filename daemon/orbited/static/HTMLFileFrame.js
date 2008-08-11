@@ -64,7 +64,6 @@ window.onload = reconnect
 HEARTBEAT_TIMEOUT = 10000
 try {
     HEARTBEAT_TIMEOUT = parent.Orbited.settings.HEARTBEAT_TIMEOUT
-//    alert('same domain.');
 }
 catch(e) {
 // TODO: test out cross-domain stuff... :-(

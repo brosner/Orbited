@@ -12,7 +12,7 @@ class XHRStreamingTransport(CometTransport):
         self.totalBytes = 0
         # Force reconnect ever 45 seconds
 #        self.close_timer = reactor.callLater(45, self.triggerCloseTimeout)
-        self.request.setHeader('content-type', 'orbited/event-stream')
+        self.request.setHeader('content-type', 'application/x-orbited-event-stream')
         # Safari/Tiger may need 256 bytes
         self.request.write(' ' * 256)
 
@@ -22,32 +22,29 @@ class XHRStreamingTransport(CometTransport):
     def write(self, packets):
         self.logger.debug('write %r' % packets)
         # TODO why join the packets here?  why not do N request.write?
-        payload = "".join([ self.encode(packet) for packet in packets])
-        self.logger.debug('WRITE ' + payload)
-        
+        payload = self.encode(packets)
+        self.logger.debug('WRITE ' + payload)        
         self.request.write(payload)
         self.totalBytes += len(payload)
         if (self.totalBytes > MAXBYTES):
             self.logger.debug('over maxbytes limit')
             self.close()
 
-    def encode(self, packet):
-        id, name, info = packet
-        output = ""
-        args = (id, name) + info
-        return self.encode_args(args)
-    
-    def encode_args(self, args):
-        output = ""
-        for i, arg in enumerate(args):
-            if i == len(args) -1:
-                output += '0'
-            else:
-                output += '1'
-            data = str(arg)
-            output += str(len(data)) + ','
-            output += data
-        return output
+    def encode(self, packets):
+        output = []
+        for packet in packets:
+            for i, arg in enumerate(packet):
+                if i == len(packet) -1:
+                    output.append('0')
+                else:
+                    output.append('1')
+                output.append(str(len(arg)))
+                output.append(',')                
+                output.append(arg)
+        return "".join(output)
+
+
+     
 
     def writeHeartbeat(self):
         self.logger.debug('writeHeartbeat, ' + repr(self))

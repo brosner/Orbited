@@ -1,5 +1,6 @@
 import os
 import uuid
+import base64
 
 from zope.interface import implements
 from twisted.internet import reactor, interfaces
@@ -142,10 +143,10 @@ class TCPConnectionResource(resource.Resource):
     logger = logging.get_logger('orbited.cometsession.TCPConnectionResource')
 
     # Determines timeout interval after ping has been sent
-    pingTimeout = 10
+    pingTimeout = 40
     # Determines interval to wait before sending a ping
     # since the last time we heard from the client.
-    pingInterval = 20
+    pingInterval = 40
 
     def __init__(self, root, key, peer, host, **options):
         resource.Resource.__init__(self)
@@ -219,6 +220,12 @@ class TCPConnectionResource(resource.Resource):
         return server.NOT_DONE_YET
         
     def parseData(self, data):
+      
+        # TODO: this method is filled with areas that really should be put
+        #       inside try/except blocks. We don't want errors caused by
+        #       malicious IO.
+      
+      
         self.logger.debug('RECV: ' + data)
         frames = []
         curFrame  = []
@@ -258,7 +265,7 @@ class TCPConnectionResource(resource.Resource):
                 if len(args) != 3:
                     # TODO kill the connection with error.
                     pass
-                data = args[2]
+                data = base64.b64decode(args[2])
                 # NB: parentTransport is-a FakeTCPTransport.
                 self.parentTransport.dataReceived(data)
             elif name == 'ping':
@@ -372,7 +379,7 @@ class TCPConnectionResource(resource.Resource):
         elif isinstance(data, TCPClose):
             self.cometTransport.sendPacket('close', str(packetId))
         else:
-            self.cometTransport.sendPacket('data', str(packetId), data)
+            self.cometTransport.sendPacket('data', str(packetId), base64.b64encode(data))
     
     def resendUnackQueue(self):
         if not self.unackQueue:

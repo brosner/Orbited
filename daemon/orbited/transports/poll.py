@@ -3,31 +3,29 @@ from orbited import logging
 from orbited.transports.base import CometTransport
 
 
-class LongPollingTransport(CometTransport):
+class PollingTransport(CometTransport):
 
-    logger = logging.get_logger('orbited.transports.longpoll.LongPollingTransport')
+    logger = logging.get_logger('orbited.transports.longpoll.PollingTransport')
 
     def opened(self):
-        self.totalBytes = 0
-        # Force reconnect ever 45 seconds
-        self.close_timer = reactor.callLater(30, self.triggerCloseTimeout)
-#        self.request.setHeader('content-type', 'application/x-orbited-event-stream')
         self.request.setHeader('cache-control', 'no-cache, must-revalidate')
 
     def triggerCloseTimeout(self):
         self.close()
 
+    # NOTE: we override this so we can close as soon as we send out any waiting
+    #       packets. We can't put the self.close call inside of self.write 
+    #       because sometimes there will be no packets to write.
+    def flush(self):
+        CometTransport.flush(self)
+        self.close()
+
     def write(self, packets):
-        # TODO: we can optimize this. In the case where packets contains a
-        #       single packet, and its a ping, just don't send it. (instead,
-        #       close the connection. the re-open will prompt the ack)
-        
         self.logger.debug('write %r' % packets)
         payload = self.encode(packets)
         self.logger.debug('WRITE ' + payload)        
         self.request.write(payload)
-        self.close()
-
+        
     def encode(self, packets):
         output = []
         for packet in packets:

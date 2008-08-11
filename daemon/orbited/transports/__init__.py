@@ -2,12 +2,14 @@ import xhrstream
 import htmlfile
 import sse
 import longpoll
+import poll
 
 map = {
     'xhrstream': xhrstream.XHRStreamingTransport,
     'htmlfile': htmlfile.HTMLFileTransport,
     'sse': sse.SSETransport,
-    'longpoll': longpoll.LongPollingTransport
+    'longpoll': longpoll.LongPollingTransport,
+    'poll': poll.PollingTransport
 }
 
 def create(transport_name, conn):

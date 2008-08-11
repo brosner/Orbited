@@ -1,3 +1,4 @@
+import base64
 from orbited import logging
 from twisted.web import server, resource, static, error
 from twisted.internet import defer, reactor
@@ -33,9 +34,14 @@ class CometTransport(resource.Resource):
             self.writeHeartbeat()
             self.resetHeartbeat()
         
-    def sendPacket(self, name, id, *info):
-        self.packets.append((id, name, info))
-    
+    def sendPacket(self, name, id, data=None):
+        if isinstance(id, int):
+            id = str(id)
+        if data:
+            self.packets.append((id, name, data))
+        else:
+            self.packets.append((id, name))
+            
     def flush(self):
         if self.packets:
             self.write(self.packets)
@@ -54,9 +60,7 @@ class CometTransport(resource.Resource):
     
 
     def close(self):
-        logger.debug('time to do a close')
         if self.closed:
-            logger.debug('already closed...')
             return
         self.closed = True
         logger.debug('close ', repr(self))

@@ -39,6 +39,7 @@ Orbited.settings.port = (location.port.length > 0) ? location.port : 80
 Orbited.settings.protocol = 'http'
 Orbited.settings.log = false;
 Orbited.settings.HEARTBEAT_TIMEOUT = 6000
+Orbited.settings.POLL_INTERVAL = 2000
 Orbited.singleton = {}
 
 
@@ -76,14 +77,21 @@ if (typeof(ActiveXObject) != "undefined") {
     var p = "=";
     var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-    Orbited.base64.encode=function(/* byte[] */ba){
+    if (window.btoa && window.btoa('1') == 'MQ==') {
+        Orbited.base64.encode = function(data) { return btoa(data) };
+        Orbited.base64.decode = function(data) { return atob(data) };
+        console.log('using btoa and atob')
+        return
+    }
+
+    Orbited.base64.encode=function(/* String */ba){
         //  summary
-        //  Encode an array of bytes as a base64-encoded string
+        //  Encode a string as a base64-encoded string
         var s=[], l=ba.length;
         var rm=l%3;
         var x=l-rm;
         for (var i=0; i<x;){
-            var t=ba[i++]<<16|ba[i++]<<8|ba[i++];
+            var t=ba.charCodeAt(i++)<<16|ba.charCodeAt(i++)<<8|ba.charCodeAt(i++);
             s.push(tab.charAt((t>>>18)&0x3f)); 
             s.push(tab.charAt((t>>>12)&0x3f));
             s.push(tab.charAt((t>>>6)&0x3f));
@@ -92,7 +100,7 @@ if (typeof(ActiveXObject) != "undefined") {
         //  deal with trailers, based on patch from Peter Wood.
         switch(rm){
             case 2:{
-                var t=ba[i++]<<16|ba[i++]<<8;
+                var t=ba.charCodeAt(i++)<<16|ba.charCodeAt(i++)<<8;
                 s.push(tab.charAt((t>>>18)&0x3f));
                 s.push(tab.charAt((t>>>12)&0x3f));
                 s.push(tab.charAt((t>>>6)&0x3f));
@@ -100,7 +108,7 @@ if (typeof(ActiveXObject) != "undefined") {
                 break;
             }
             case 1:{
-                var t=ba[i++]<<16;
+                var t=ba.charCodeAt(i++)<<16;
                 s.push(tab.charAt((t>>>18)&0x3f));
                 s.push(tab.charAt((t>>>12)&0x3f));
                 s.push(p);
@@ -110,6 +118,7 @@ if (typeof(ActiveXObject) != "undefined") {
         }
         return s.join("");  //  string
     };
+
 
     Orbited.base64.decode=function(/* string */str){
         //  summary
@@ -123,13 +132,13 @@ if (typeof(ActiveXObject) != "undefined") {
             if(i<=l){ t|=tab.indexOf(s[i++])<<12 };
             if(i<=l){ t|=tab.indexOf(s[i++])<<6 };
             if(i<=l){ t|=tab.indexOf(s[i++]) };
-            out.push((t>>>16)&0xff);
-            out.push((t>>>8)&0xff);
-            out.push(t&0xff);
+            out.push(String.fromCharCode((t>>>16)&0xff));
+            out.push(String.fromCharCode((t>>>8)&0xff));
+            out.push(String.fromCharCode(t&0xff));
         }
         // strip off trailing padding
         while(tl--){ out.pop(); }
-        return out; //  byte[]
+        return out.join(""); //  string
     };
 })();
 
@@ -203,7 +212,11 @@ Orbited.Loggers.FirebugLogger = function(name) {
     }
     self.assert = function() {
         if (!self.enabled) { return }
-        console.assert.apply(this, padArgs(arguments))
+        var newArgs = [arguments[0], name + ":" ]
+        for (var i = 1; i < arguments.length; ++i) {
+            newArgs.push(arguments[i]);
+        }
+        console.assert.apply(this, newArgs)
     }
     self.trace = function() {
         if (!self.enabled) { return }
@@ -213,10 +226,19 @@ Orbited.Loggers.FirebugLogger = function(name) {
 
 Orbited.Loggers.EmptyLogger = function(name) {
     var self = this;
+    self.enabled = false;
     self.name = name;
     self.log = function() {
     }
     self.debug = function() {
+        if (!self.enabled) { return }
+        var newArgs = [ "<b>" + name + "</b>" ]
+        for (var i = 0; i < arguments.length; ++i) {
+            newArgs.push(arguments[i]);
+        }
+        d = document.createElement('div')
+        d.innerHTML = newArgs.join(", ")
+        document.body.appendChild(d)
     }
     self.info = function() {
     }
@@ -390,6 +412,7 @@ Orbited.CometSession = function() {
         if (self.readyState != self.READY_STATE_OPEN) {
             throw new Error("Invalid readyState")
         }
+        data = Orbited.base64.encode(data)
         sendQueue.push([++packetCount, "data", data])
 ;;;     self.logger.debug('sending==', sending);
         if (!sending) {
@@ -458,12 +481,8 @@ Orbited.CometSession = function() {
     }
 
     var transportOnReadFrame = function(frame) {
-;;;     self.logger.debug('READ FRAME');
-;;;     self.logger.debug('id ', frame.id);
-;;;     self.logger.debug('name ', frame.name);
-;;;     if (frame.args.length > 0)
-;;;         self.logger.debug('args ', frame.args[0]);
-;;;     self.logger.debug('---');
+;;;     self.logger.debug('transportOnReadFrame')
+;;;     self.logger.debug('READ FRAME: ', frame.id, frame.name, frame.data ? frame.data.length : '');
         if (!isNaN(frame.id)) {
             lastPacketId = Math.max(lastPacketId, frame.id);
         }
@@ -475,11 +494,15 @@ Orbited.CometSession = function() {
                 }
                 break;
             case 'data':
-                self.onread(frame.args[0]);
+;;;             self.logger.debug('base64 decoding ' + frame.data.length + ' bytes of data')
+                data = Orbited.base64.decode(frame.data)
+;;;             self.logger.debug('decode complete');
+                self.onread(data);
                 break;
             case 'open':
                 if (self.readyState == self.READY_STATE_OPENING) {
                     self.readyState = self.READY_STATE_OPEN;
+;;;                 self.logger.debug('Call self.onopen()');
                     self.onopen();
                 }
                 else {
@@ -488,11 +511,19 @@ Orbited.CometSession = function() {
                 break;
             case 'ping':
                 // TODO: don't have a third element (remove the null).
-                sendQueue.push([++packetCount, "ping", null])
-                if (!sending) {
-                    doSend()
+                // NOTE: don't waste a request when we get a longpoll ping.
+                switch(cometTransport.name) {
+                    case 'longpoll':
+                        break;
+                    case 'poll':
+                        break;
+                    default:
+                        sendQueue.push([++packetCount, "ping", null])
+                        if (!sending) {
+                            doSend()
+                        }
+                        break;                    
                 }
-                
         }
     }
     var transportOnClose = function() {
@@ -538,6 +569,7 @@ Orbited.CometSession = function() {
             return
         }
         if (sendQueue.length == 0) {
+;;;         self.logger.debug('sendQueue exhausted');
             sending = false;
             return
         }
@@ -547,12 +579,6 @@ Orbited.CometSession = function() {
         sessionUrl.setQsParameter('ack', lastPacketId)
 //        xhr = createXHR();
         xhr.onreadystatechange = function() {
-;;;         self.logger.debug('send readyState', xhr.readyState)
-;;;         try {
-;;;             self.logger.debug('status', xhr.status);
-;;;         } catch(e) {
-;;;             self.logger.debug('no status');
-;;;         }
             switch(xhr.readyState) {
                 
                 case 4:
@@ -610,7 +636,7 @@ Orbited.TCPSocket = function() {
     self.onopen = function() { }
     self.onread = function() { }
     self.onclose = function() { }
-
+    var buffer = ""
     var session = null;
     var binary = false;
     var handshakeState = null;
@@ -674,26 +700,47 @@ Orbited.TCPSocket = function() {
             if (!(data instanceof Array)) {
                 throw new Error("invalid payload: binary mode is set");
             }
-            session.send(encodeBinary(data))
         }
         else {
-;;;         self.logger.debug('SEND: ', data)
-            session.send(data)
+            data = Orbited.utf8.fromUtf8(data)
         }
-       }
+;;;     self.logger.debug('SEND: ', data)
+        session.send(data)
+    }
 
-    var encodeBinary = Orbited.base64.encode;
-    var decodeBinary = Orbited.base64.decode;
+    var process = function() {
+        var result = Orbited.utf8.toUtf8(buffer)
+        var data = result[0]
+        var i = result[1]
+        buffer = buffer.slice(i)
+        if (data.length > 0) {
+            self.onread(data);
+        }
+    }
 
     var sessionOnRead = function(data) {
         switch(self.readyState) {
             case self.READY_STATE_OPEN:
 ;;;             self.logger.debug('READ: ', data)
-                binary ? self.onread(decodeBinary(data)) : self.onread(data)
-                break;
+                var data = data;
+                if (self.binary) {
+                    self.onread(data);
+                }
+                else {
+;;;                 self.logger.debug('start buffer size:', buffer.length)
+                    buffer += data;
+//                    data.splice(0,0,buffer.length, 0)
+//                    buffer.splice.apply(buffer, data)
+                    process()
+;;;                 self.logger.debug('end buffer size:', buffer.length)
+                }
+            break;
             case self.READY_STATE_OPENING:
                 switch(handshakeState) {
                     case 'initial':
+                        // NOTE: we should only get complete payloads during
+                        //       the handshake. no need to buffer, then parse
+                        data = Orbited.utf8.toUtf8(data)[0];
 ;;;                     self.logger.debug('initial');
 ;;;                     self.logger.debug('data', data)
 ;;;                     self.logger.debug('len', data.length);
@@ -724,7 +771,12 @@ Orbited.TCPSocket = function() {
     
     var sessionOnOpen = function(data) {
         // TODO: TCPSocket handshake
-        session.send((binary ? '1' : '0') + hostname + ':' + port + '\n')
+        var payload = hostname + ':' + port + '\n' 
+;;;     self.logger.debug('sessionOpen; sending:', payload)
+        payload = Orbited.utf8.fromUtf8(payload)
+;;;     self.logger.debug('encoded payload:', payload)
+        X = payload
+        session.send(payload)
         handshakeState = 'initial'
     }
     
@@ -767,7 +819,6 @@ Orbited.singleton.XSDR = {
 }
 Orbited.XSDR = function() {
     var self = this;
-
     var ifr = null;
     var url;
     var method;
@@ -835,7 +886,14 @@ Orbited.XSDR = function() {
 
     self.abort = function() {
         if (self.readyState > 0 && self.readyState < 4) {
-            queue.push(['ABORT']);
+            // TODO: push an ABORT command (so as not to reload the iframe)
+//            queue.push(['ABORT']);
+;;;         self.logger.debug('ABORT called');
+            ifr.src = "about:blank"
+            document.body.removeChild(ifr)
+            ifr = null;
+            self.readyState = 4;
+            self.onreadystatechange();
         }
     }
 
@@ -864,13 +922,18 @@ Orbited.XSDR = function() {
             case 'readystatechange':
                 var data = payload[1]
                 self.readyState = data.readyState
+;;;             self.logger.debug('readystatechange', self.readyState)
                 if (data.status) {
                     self.status = data.status
+;;;                 self.logger.debug('status', data.status)
                 }
                 if (data.responseText) {
                     self.responseText += data.responseText
+;;;                 self.logger.debug('responseText', data.responseText)
                 }
+;;;             self.logger.debug('doing trigger');
                 self.onreadystatechange();
+;;;             self.logger.debug('trigger complete');
         }
     }
 
@@ -921,6 +984,7 @@ Orbited.singleton.XSDRBridgeLogger = Orbited.getLogger('XSDRBridge');
 
 Orbited.CometTransports.XHRStream = function() {
     var self = this;
+    self.name = 'xhrstream'
     var url = null;
     var xhr = null;
     var ackId = null;
@@ -928,7 +992,6 @@ Orbited.CometTransports.XHRStream = function() {
     var heartbeatTimer = null;
     var retryTimer = null;
     var buffer = ""
-    var currentArgs = []
     var retryInterval = 50
     self.readyState = 0
     self.onReadFrame = function(frame) {}
@@ -1132,17 +1195,17 @@ Orbited.CometTransports.XHRStream = function() {
     }
     var receivedHeartbeat = function() {
         window.clearTimeout(heartbeatTimer);
-//        self.logger.debug('clearing heartbeatTimer', heartbeatTimer)
+;;;     self.logger.debug('clearing heartbeatTimer', heartbeatTimer)
         heartbeatTimer = window.setTimeout(function() { 
-//            self.logger.debug('timer', testtimer, 'did it'); 
+;;;         self.logger.debug('timer', testtimer, 'did it'); 
             heartbeatTimeout();
         }, Orbited.settings.HEARTBEAT_TIMEOUT);
         var testtimer = heartbeatTimer;
 
-//        self.logger.debug('heartbeatTimer is now', heartbeatTimer)
+;;;     self.logger.debug('heartbeatTimer is now', heartbeatTimer)
     }
     var heartbeatTimeout = function() {
-//        self.logger.debug('heartbeat timeout... reconnect')
+;;;     self.logger.debug('heartbeat timeout... reconnect')
         reconnect();
     }
     var receivedPacket = function(args) {
@@ -1153,8 +1216,10 @@ Orbited.CometTransports.XHRStream = function() {
         var packet = {
             id: testAckId,
             name: args[1],
-            args: args.slice(2)
+            data: args[2]
         }
+        // TODO: shouldn't we put this in a window.setTimeout so that user
+        //       code won't mess up our code?
         self.onread(packet)
     }
 }
@@ -1166,8 +1231,412 @@ Orbited.CometTransports.XHRStream.firefox3 = 1.0
 Orbited.CometTransports.XHRStream.safari2 = 1.0
 Orbited.CometTransports.XHRStream.safari3 = 1.0
 
+
+
+
+
+Orbited.CometTransports.LongPoll = function() {
+    var self = this;
+    self.name = 'longpoll'
+    var url = null;
+    var xhr = null;
+    var ackId = null;
+    var retryTimer = null;
+    var buffer = ""
+    var retryInterval = 50
+    self.readyState = 0
+    self.onReadFrame = function(frame) {}
+    self.onclose = function() { }
+
+    self.close = function() {
+        if (self.readyState == 2) {
+            return
+        }
+        if (xhr != null && (xhr.readyState > 1 || xhr.readyState < 4)) {
+            xhr.onreadystatechange = function() { }
+            xhr.abort()
+            xhr = null;
+        }
+        self.readyState = 2
+        window.clearTimeout(retryTimer);
+        self.onclose();
+    }
+
+    self.connect = function(_url) {
+        if (self.readyState == 1) {
+            throw new Error("Already Connected")
+        }
+        url = new Orbited.URL(_url)
+        if (xhr == null) {
+            if (url.isSameDomain(location.href)) {
+                xhr = createXHR();
+            }
+            else {
+                xhr = new Orbited.XSDR();
+            }
+        }
+        url.path += '/longpoll'
+//        url.setQsParameter('transport', 'xhrstream')
+        self.readyState = 1
+        open()
+    }
+    var open = function() {
+        try {
+            if (typeof(ackId) == "number") {
+                url.setQsParameter('ack', ackId)
+            }
+            if (typeof(xhr)== "undefined" || xhr == null) {
+                throw new Error("how did this happen?");
+            }
+            
+            xhr.open('GET', url.render(), true)
+            xhr.onreadystatechange = function() {
+;;;             self.logger.debug('readystate', xhr.readyState)
+                switch(xhr.readyState) {
+                   case 4:
+                        try {
+                            xhr.status
+                        }
+                        catch(e) {
+                            // Expoential backoff: Every time we fail to 
+                            // reconnect, double the interval.
+                            // TODO cap the max value. 
+;;;                         self.logger.debug("start reconnect Timer (couldn't access xhr.status)")
+                            retryInterval *= 2;
+                            window.setTimeout(reconnect, retryInterval)
+                            return;
+                        }
+                        switch(xhr.status) {
+                            case 200:
+                                process();
+;;;                         self.logger.debug("completed request, reconnect immediately")
+                                setTimeout(open, 0)
+                                break;
+                            case 404:
+                                self.close();
+                                break
+                            case null:
+                                // NOTE: for the XSDR case: 
+                                // (we can always get status, but maybe its null)
+                                retryInterval *= 2;
+;;;                         self.logger.debug("start reconnect Timer (null xhr.status)")
+                                window.setTimeout(reconnect, retryInterval)
+                                break;                                
+                            default:
+                                // TODO: do we want to retry here?
+;;;                         self.logger.debug("something broke, xhr.status=", xhr.status)
+                                self.close();
+                                break
+                        }
+                }
+            }
+            xhr.send(null);
+        }
+        catch(e) {
+            self.close()
+        }
+    }
+
+    var reconnect = function() {
+;;;     self.logger.debug('reconnect...')
+        if (xhr.readyState < 4 && xhr.readyState > 0) {
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    reconnect();
+                }
+            }
+;;;         self.logger.debug('do abort..')
+            xhr.abort();
+            window.clearTimeout(heartbeatTimer);            
+        }
+        else {
+;;;         self.logger.debug('reconnect do open')
+            offset = 0;
+            setTimeout(open, 0)
+        }
+    }
+    // 12,ab011,hello world
+    var process = function() {
+        var commaPos = -1;
+        var argEnd = null;
+        var argSize;
+        var frame = []
+        var stream = xhr.responseText;
+        var offset = 0
+
+
+        var k = 0
+        while (true) {
+            k += 1
+            if (k > 2000) {
+                throw new Error("Borked XHRStream transport");
+                return
+            }
+            if (commaPos == -1) {
+                commaPos = stream.indexOf(',', offset)
+            }
+            if (commaPos == -1) {
+;;;             self.logger.debug('no more commas. offset:', offset, 'stream.length:', stream.length);
+                return
+            }
+            if (argEnd == null) {
+                argSize = parseInt(stream.slice(offset+1, commaPos))
+                argEnd = commaPos +1 + argSize
+            }
+;;;         self.logger.assert(true);
+/*            if (stream.length < argEnd) {
+;;;             self.logger.debug('how did we get here? stream.length:', stream.length, 'argEnd:', argEnd, 'offset:', offset)
+                return
+            }*/
+            var data = stream.slice(commaPos+1, argEnd)
+;;;         self.logger.assert(data.length == argSize, 'argSize:', argSize, 'data.length', data.length)
+            if (data.length != argSize) {
+                DEBUGDATA = stream
+            }
+            frame.push(data)
+            var isLast = (stream.charAt(offset) == '0')
+            offset = argEnd;
+            argEnd = null;
+            commaPos = -1
+            if (isLast) {
+                var frameCopy = frame
+                frame = []
+                receivedPacket(frameCopy)                
+            }
+        } 
+
+    }
+    var receivedPacket = function(args) {
+        var testAckId = parseInt(args[0])
+;;;     self.logger.debug('args', args)
+        if (!isNaN(testAckId)) {
+            ackId = testAckId
+        }
+;;;     self.logger.debug('testAckId', testAckId, 'ackId', ackId)
+        var packet = {
+            id: testAckId,
+            name: args[1],
+            data: args[2]
+        }
+        // TODO: shouldn't we put this in a window.setTimeout so that user
+        //       code won't mess up our code?
+        self.onReadFrame(packet)
+    }
+}
+Orbited.CometTransports.LongPoll.prototype.logger = Orbited.getLogger("Orbited.CometTransports.LongPoll");
+// LongPoll supported browsers
+/*
+Orbited.CometTransports.LongPoll.firefox = 0.9
+Orbited.CometTransports.LongPoll.firefox2 = 0.9
+Orbited.CometTransports.LongPoll.firefox3 = 0.9
+Orbited.CometTransports.LongPoll.safari2 = 0.9
+Orbited.CometTransports.LongPoll.safari3 = 0.9
+Orbited.CometTransports.LongPoll.opera = 0.9
+Orbited.CometTransports.LongPoll.ie = 0.9
+*/
+
+
+
+Orbited.CometTransports.Poll = function() {
+    var self = this;
+    self.name = 'poll'
+    var url = null;
+    var xhr = null;
+    var ackId = null;
+    var retryTimer = null;
+    var buffer = ""
+    var baseRetryInterval = Orbited.settings.POLL_INTERVAL
+    var retryInterval = baseRetryInterval;
+    self.readyState = 0
+    self.onReadFrame = function(frame) {}
+    self.onclose = function() { }
+
+    self.close = function() {
+        if (self.readyState == 2) {
+            return
+        }
+        if (xhr != null && (xhr.readyState > 1 || xhr.readyState < 4)) {
+            xhr.onreadystatechange = function() { }
+            xhr.abort()
+            xhr = null;
+        }
+        self.readyState = 2
+        window.clearTimeout(retryTimer);
+        self.onclose();
+    }
+
+    self.connect = function(_url) {
+        if (self.readyState == 1) {
+            throw new Error("Already Connected")
+        }
+        url = new Orbited.URL(_url)
+        if (xhr == null) {
+            if (url.isSameDomain(location.href)) {
+                xhr = createXHR();
+            }
+            else {
+                xhr = new Orbited.XSDR();
+            }
+        }
+        url.path += '/poll'
+//        url.setQsParameter('transport', 'xhrstream')
+        self.readyState = 1
+        open()
+    }
+    var open = function() {
+        try {
+            if (typeof(ackId) == "number") {
+                url.setQsParameter('ack', ackId)
+            }
+            if (typeof(xhr)== "undefined" || xhr == null) {
+                throw new Error("how did this happen?");
+            }
+            
+            xhr.open('GET', url.render(), true)
+            xhr.onreadystatechange = function() {
+                switch(xhr.readyState) {
+                   case 4:
+                        try {
+                            xhr.status
+                        }
+                        catch(e) {
+                            // Expoential backoff: Every time we fail to 
+                            // reconnect, double the interval.
+                            // TODO cap the max value. 
+                            retryInterval *= 2;
+                            window.setTimeout(reconnect, retryInterval)
+                            return;
+                        }
+                        switch(xhr.status) {
+                            case 200:
+                                retryInterval = baseRetryInterval;
+                                process();
+                                setTimeout(open, retryInterval)
+                                break;
+                            case 404:
+                                self.close();
+                                break
+                            case null:
+                                // NOTE: for the XSDR case: Long
+                                // (we can always get status, but maybe its null)
+                                retryInterval *= 2;
+                                window.setTimeout(reconnect, retryInterval)
+                                break;                                
+                            default:
+                                // TODO: do we want to retry here?
+                                self.close();
+                                break
+                        }
+                }
+            }
+            xhr.send(null);
+        }
+        catch(e) {
+            self.close()
+        }
+    }
+
+    var reconnect = function() {
+;;;     self.logger.debug('reconnect...')
+        if (xhr.readyState < 4 && xhr.readyState > 0) {
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    reconnect();
+                }
+            }
+;;;         self.logger.debug('do abort..')
+            xhr.abort();
+            window.clearTimeout(heartbeatTimer);            
+        }
+        else {
+;;;         self.logger.debug('reconnect do open')
+            offset = 0;
+            setTimeout(open, 0)
+        }
+    }
+    // 12,ab011,hello world
+    var process = function() {
+        var commaPos = -1;
+        var argEnd = null;
+        var argSize;
+        var frame = []
+        var stream = xhr.responseText;
+        var offset = 0
+
+
+        var k = 0
+        while (true) {
+            k += 1
+            if (k > 2000) {
+                throw new Error("Borked XHRStream transport");
+                return
+            }
+            if (commaPos == -1) {
+                commaPos = stream.indexOf(',', offset)
+            }
+            if (commaPos == -1) {
+;;;             self.logger.debug('no more commas. offset:', offset, 'stream.length:', stream.length);
+                return
+            }
+            if (argEnd == null) {
+                argSize = parseInt(stream.slice(offset+1, commaPos))
+                argEnd = commaPos +1 + argSize
+            }
+;;;         self.logger.assert(true);
+/*            if (stream.length < argEnd) {
+;;;             self.logger.debug('how did we get here? stream.length:', stream.length, 'argEnd:', argEnd, 'offset:', offset)
+                return
+            }*/
+            var data = stream.slice(commaPos+1, argEnd)
+;;;         self.logger.assert(data.length == argSize, 'argSize:', argSize, 'data.length', data.length)
+            if (data.length != argSize) {
+                DEBUGDATA = stream
+            }
+            frame.push(data)
+            var isLast = (stream.charAt(offset) == '0')
+            offset = argEnd;
+            argEnd = null;
+            commaPos = -1
+            if (isLast) {
+                var frameCopy = frame
+                frame = []
+                receivedPacket(frameCopy)                
+            }
+        } 
+
+    }
+    var receivedPacket = function(args) {
+        var testAckId = parseInt(args[0])
+;;;     self.logger.debug('args', args)
+        if (!isNaN(testAckId)) {
+            ackId = testAckId
+        }
+;;;     self.logger.debug('testAckId', testAckId, 'ackId', ackId)
+        var packet = {
+            id: testAckId,
+            name: args[1],
+            data: args[2]
+        }
+        // TODO: shouldn't we put this in a window.setTimeout so that user
+        //       code won't mess up our code?
+        self.onReadFrame(packet)
+    }
+}
+Orbited.CometTransports.Poll.prototype.logger = Orbited.getLogger("Orbited.CometTransports.Poll");
+
+// Poll supported browsers
+/*Orbited.CometTransports.Poll.firefox = 0.5
+Orbited.CometTransports.Poll.opera = 0.5
+Orbited.CometTransports.Poll.ie = 0.5
+*/
+
+
+
+
+
 Orbited.CometTransports.HTMLFile = function() {
     var self = this;
+    self.name = 'htmlfile'
     var id = ++Orbited.singleton.HTMLFile.i;
     Orbited.singleton.HTMLFile.instances[id] = self;
     var htmlfile = null
@@ -1241,11 +1710,11 @@ Orbited.CometTransports.HTMLFile = function() {
         self.close()
     }
 
-    self.receive = function(id, name, args) {
+    self.receive = function(id, name, data) {
         packet = {
             id: id,
             name: name,
-            args: args
+            data: data
         }
         self.onread(packet)
     }
@@ -1275,7 +1744,7 @@ Orbited.singleton.HTMLFile = {
 
 Orbited.CometTransports.SSE = function() {
     var self = this;
-
+    self.name = 'sse'
     self.onReadFrame = function(frame) {}
     self.onclose = function() { }
     self.readyState = 0;
@@ -1346,7 +1815,7 @@ Orbited.CometTransports.SSE = function() {
         heartbeatTimer = window.setTimeout(reconnect, Orbited.settings.HEARTBEAT_TIMEOUT)
     }
 */
-    var receive = function(id, name, args) {
+    var receive = function(id, name, data) {
         var tempId = parseInt(id);
         if (!isNaN(tempId)) {
             // NOTE: The old application/x-dom-event-stream transport doesn't
@@ -1365,7 +1834,7 @@ Orbited.CometTransports.SSE = function() {
         packet = {
             id: id,
             name: name,
-            args: args
+            data: data
         }
         self.onReadFrame(packet)
     }
@@ -1509,6 +1978,150 @@ Orbited.URL = function(_url) {
     }
 
 }
+
+Orbited.utf8 = {}
+Orbited.utf8.bytesToUtf8 = function(bytes) {    
+    var ret = [];
+    
+    function pad6(str) {
+        while(str.length < 6) { str = "0" + str; } return str;
+    }
+    
+    for (var i=0; i < bytes.length; i++) {
+        if ((bytes[i] & 0xf8) == 0xf0) {
+            ret.push(String.fromCharCode(parseInt(
+                         (bytes[i] & 0x07).toString(2) +
+                  pad6((bytes[i+1] & 0x3f).toString(2)) +
+                  pad6((bytes[i+2] & 0x3f).toString(2)) +
+                  pad6((bytes[i+3] & 0x3f).toString(2))
+                , 2)));
+            i += 3;
+        } else if ((bytes[i] & 0xf0) == 0xe0) {
+            ret.push(String.fromCharCode(parseInt(
+                         (bytes[i] & 0x0f).toString(2) +
+                  pad6((bytes[i+1] & 0x3f).toString(2)) +
+                  pad6((bytes[i+2] & 0x3f).toString(2))
+                , 2)));
+            i += 2;
+        } else if ((bytes[i] & 0xe0) == 0xc0) {
+                ret.push(String.fromCharCode(parseInt(
+                       (bytes[i] & 0x1f).toString(2) +
+                pad6((bytes[i+1] & 0x3f).toString(2), 6)
+                , 2)));
+            i += 1;
+        } else {
+            ret.push(String.fromCharCode(bytes[i]));
+        }
+    }
+    // TODO: XXX: if we got half a character at the end, *mention it*
+    return [ret.join(""), bytes.length];
+}
+
+Orbited.utf8.utf8ToBytes = function(text) {
+    var ret = [];
+    
+    function pad(str, len) {
+        while(str.length < len) { str = "0" + str; } return str;
+    }
+    
+    for (var i=0; i < text.length; i++) {
+        var chr = text.charCodeAt(i);
+        if (chr <= 0x7F) {
+            ret.push(chr);
+        } else if(chr <= 0x7FF) {
+            var binary = pad(chr.toString(2), 11);
+            ret.push(parseInt("110"   + binary.substr(0,5), 2));
+            ret.push(parseInt("10"    + binary.substr(5,6), 2));
+        } else if(chr <= 0xFFFF) {
+            var binary = pad(chr.toString(2), 16);
+            ret.push(parseInt("1110"  + binary.substr(0,4), 2));
+            ret.push(parseInt("10"    + binary.substr(4,6), 2));
+            ret.push(parseInt("10"    + binary.substr(10,6), 2));
+        } else if(chr <= 0x10FFFF) {
+            var binary = pad(chr.toString(2), 21);
+            ret.push(parseInt("11110" + binary.substr(0,3), 2));
+            ret.push(parseInt("10"    + binary.substr(3,6), 2));
+            ret.push(parseInt("10"    + binary.substr(9,6), 2));
+            ret.push(parseInt("10"    + binary.substr(15,6), 2));
+        }
+    }
+    return ret;
+}
+
+
+Orbited.utf8.toUtf8 = function(s) {    
+    var ret = [];
+    var j = 0
+    function pad6(str) {
+        while(str.length < 6) { str = "0" + str; } return str;
+    }
+    for (var i=0; i < s.length; i++) {
+        if ((s.charCodeAt(i) & 0xf8) == 0xf0) {
+            if (s.length -j < 4) { break }
+            j+=4;
+            ret.push(String.fromCharCode(parseInt(
+                         (s.charCodeAt(i) & 0x07).toString(2) +
+                  pad6((s.charCodeAt(i+1) & 0x3f).toString(2)) +
+                  pad6((s.charCodeAt(i+2) & 0x3f).toString(2)) +
+                  pad6((s.charCodeAt(i+3) & 0x3f).toString(2))
+                , 2)));
+            i += 3;
+        } else if ((s.charCodeAt(i) & 0xf0) == 0xe0) {
+            if (s.length -j < 3) { break }
+            j+=3;
+            ret.push(String.fromCharCode(parseInt(
+                  (s.charCodeAt(i) & 0x0f).toString(2) +
+                  pad6((s.charCodeAt(i+1) & 0x3f).toString(2)) +
+                  pad6((s.charCodeAt(i+2) & 0x3f).toString(2))
+                , 2)));
+            i += 2;
+        } else if ((s.charCodeAt(i) & 0xe0) == 0xc0) {
+            j+=2
+            if (s.length -j < 2) { break }
+                ret.push(String.fromCharCode(parseInt(
+                       (s.charCodeAt(i) & 0x1f).toString(2) +
+                pad6((s.charCodeAt(i+1) & 0x3f).toString(2), 6)
+                , 2)));
+            i += 1;
+        } else {
+            j+=1
+            ret.push(String.fromCharCode(s.charCodeAt(i)));
+        }
+    }
+    return [ret.join(""), j];
+}
+
+Orbited.utf8.fromUtf8 = function(text) {
+    var ret = [];
+    
+    function pad(str, len) {
+        while(str.length < len) { str = "0" + str; } return str;
+    }
+    var e = String.fromCharCode
+    for (var i=0; i < text.length; i++) {
+        var chr = text.charCodeAt(i);
+        if (chr <= 0x7F) {
+            ret.push(e(chr));
+        } else if(chr <= 0x7FF) {
+            var binary = pad(chr.toString(2), 11);
+            ret.push(e(parseInt("110"   + binary.substr(0,5), 2)));
+            ret.push(eparseInt("10"    + binary.substr(5,6), 2));
+        } else if(chr <= 0xFFFF) {
+            var binary = pad(chr.toString(2), 16);
+            ret.push(e(parseInt("1110"  + binary.substr(0,4), 2)));
+            ret.push(e(parseInt("10"    + binary.substr(4,6), 2)));
+            ret.push(e(parseInt("10"    + binary.substr(10,6), 2)));
+        } else if(chr <= 0x10FFFF) {
+            var binary = pad(chr.toString(2), 21);
+            ret.push(e(parseInt("11110" + binary.substr(0,3), 2)));
+            ret.push(e(parseInt("10"    + binary.substr(3,6), 2)));
+            ret.push(e(parseInt("10"    + binary.substr(9,6), 2)));
+            ret.push(e(parseInt("10"    + binary.substr(15,6), 2)));
+        }
+    }
+    return ret.join("");
+}
+
 
 })();
 

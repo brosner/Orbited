@@ -81,6 +81,8 @@ catch(e) {
 
 function getNext() {
 //    alert(
+//    debug('GETTING NEXT REQUEST', '...');
+//    alert('getting next request...')
     document.domain = topDomain
     var queue = parent.Orbited.singleton.XSDR.queues[id]
 //    alert('queue: ' + queue.length)
@@ -113,7 +115,7 @@ function doNextRequest() {
 //    else
         req = getNext();
     if (req == null) {
-        return setTimeout(doNextRequest, 10);
+        return setTimeout(doNextRequest, 20);
     }
     var smethod = req[0]
     var surl = req[1]
@@ -123,6 +125,7 @@ function doNextRequest() {
     var xhr = createXHR();
     var responseIndex = 0;
     xhr.onreadystatechange = function() {
+        debug('onreadystatechange', xhr.readyState);
         var payload = {
             readyState: xhr.readyState
         }
@@ -138,6 +141,7 @@ function doNextRequest() {
         }
         catch(e) {
         }
+        debug('pushing payload', payload)
         push(["readystatechange", payload])
 
         if (xhr.readyState == 4) {
