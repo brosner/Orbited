@@ -708,6 +708,7 @@ Orbited.TCPSocket = function() {
     self.onopen = function() { }
     self.onread = function() { }
     self.onclose = function() { }
+    var onCloseTriggered = false;
     var buffer = ""
     var session = null;
     var binary = false;
@@ -747,10 +748,11 @@ Orbited.TCPSocket = function() {
     }
 
     self.close = function() {
-        if (self.readyState != self.READY_STATE_OPEN && self.readyState != self.READY_STATE_OPENING) {
-            throw new Error("Invalid readyState");
+        if (self.readyState == self.READY_STATE_CLOSED) {
+            return
         }
-        session.close();
+        self.readyState = self.READY_STATE_CLOSED
+        doClose()
     }
     
     /* self.reset closes the connection from this end immediately. The server
@@ -819,10 +821,7 @@ Orbited.TCPSocket = function() {
                         if (!result) {
 ;;;                         self.logger.debug('!result');
                             var errorCode = data.slice(1,4)
-                            sessionOnClose = function() {}
-                            session.close()
-                            session = null;
-                            self.onclose(parseInt(errorCode))
+                            doClose(parseInt(errorCode))
                         }
                         if (result) {
                             self.readyState = self.READY_STATE_OPEN;
@@ -833,6 +832,17 @@ Orbited.TCPSocket = function() {
                         break;
                 }
                 break;
+        }
+    }
+    var doClose = function(code) {
+        if (session) {
+            sessionOnClose = function() {}
+            session.close()
+            session = null;
+        }
+        if (!onCloseTriggered) {
+            onCloseTriggered = true;
+            window.setTimeout(function() { self.onclose(code) }, 0)
         }
     }
     
@@ -847,15 +857,11 @@ Orbited.TCPSocket = function() {
         handshakeState = 'initial'
     }
     
-    var sessionOnClose = function(status) {
+    var sessionOnClose = function(code) {
 ;;;     self.logger.debug('sessionOnClose');
         // If we are in the OPENING state, then the handshake code should
         // handle the close
-        if (self.readyState >= self.READY_STATE_OPEN) {
-            self.readyState = self.READY_STATE_CLOSED;
-            session = null;
-            self.onclose(status);
-        }
+        doClose(code);
     }
 };
 Orbited.TCPSocket.prototype.logger = Orbited.getLogger("Orbited.TCPSocket");
