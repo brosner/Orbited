@@ -774,7 +774,7 @@ Orbited.TCPSocket = function() {
         var i = result[1]
         buffer = buffer.slice(i)
         if (data.length > 0) {
-            self.onread(data);
+            window.setTimeout(function() { self.onread(data) }, 0);
         }
     }
 
@@ -784,7 +784,7 @@ Orbited.TCPSocket = function() {
 ;;;             self.logger.debug('READ: ', data)
                 var data = data;
                 if (self.binary) {
-                    self.onread(data);
+                    window.setTimeout(function() { self.onread(data) }, 0);
                 }
                 else {
 ;;;                 self.logger.debug('start buffer size:', buffer.length)
