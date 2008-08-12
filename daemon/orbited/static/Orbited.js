@@ -2155,7 +2155,7 @@ Orbited.utf8.fromUtf8 = function(text) {
         } else if(chr <= 0x7FF) {
             var binary = pad(chr.toString(2), 11);
             ret.push(e(parseInt("110"   + binary.substr(0,5), 2)));
-            ret.push(eparseInt("10"    + binary.substr(5,6), 2));
+            ret.push(e(parseInt("10"    + binary.substr(5,6), 2)));
         } else if(chr <= 0xFFFF) {
             var binary = pad(chr.toString(2), 16);
             ret.push(e(parseInt("1110"  + binary.substr(0,4), 2)));
