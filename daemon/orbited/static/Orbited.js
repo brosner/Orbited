@@ -464,15 +464,23 @@ Orbited.CometSession = function() {
      * send a close event.
      */
     self.close = function() {
-        if (self.readyState != self.READY_STATE_OPEN) {
-            throw new Error("Invalid readyState. Currently: " + self.readyState)
+        switch(self.readyState) {
+            case self.READY_STATE_CLOSING:
+            case self.READY_STATE_CLOSED:
+                return
+            case self.READY_STATE_INITIALIZED:
+                // TODO: call onclose here?
+                self.readyState = self.READY_STATE_CLOSED
+                return
+            default:
+                break
         }
+        self.readyState = self.READY_STATE_CLOSING;
         // TODO: don't have a third element (remove the null).
         sendQueue.push([++packetCount, "close", null])
         if (!sending) {
             doSend()
         }
-        self.readyState = self.READY_STATE_CLOSING;
     }
 
     /* self.reset is a way to close immediately. The send queue will be discarded
@@ -835,14 +843,20 @@ Orbited.TCPSocket = function() {
         }
     }
     var doClose = function(code) {
+;;;     self.logger.debug('doClose', code)
         if (session) {
             sessionOnClose = function() {}
             session.close()
             session = null;
         }
+;;;     self.logger.debug('onCloseTriggered', onCloseTriggered)
         if (!onCloseTriggered) {
+;;;         self.logger.debug('triggerClose timer', code)
             onCloseTriggered = true;
-            window.setTimeout(function() { self.onclose(code) }, 0)
+            window.setTimeout(function() {
+;;;             self.logger.debug('onclose!', code);
+                self.onclose(code) 
+            }, 0)
         }
     }
     
