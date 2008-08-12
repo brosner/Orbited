@@ -42,7 +42,7 @@ Orbited.settings.HEARTBEAT_TIMEOUT = 6000
 Orbited.settings.POLL_INTERVAL = 2000
 Orbited.settings.pageLoggerHeight = '200px'
 Orbited.settings.pageLoggerWidth = null;
-
+Orbited.settings.enableFFPrivleges = false;
 Orbited.singleton = {}
 
 
@@ -398,6 +398,12 @@ Orbited.CometSession = function() {
             xhr = new Orbited.XSDR();
         }
 //        xhr = createXHR();
+        if (Orbited.settings.enableFFPrivleges) {
+            try { 
+                netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
+            } catch (ex) { } 
+        }        
+
         xhr.open('GET', _url, true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4) {
@@ -644,6 +650,11 @@ Orbited.CometSession = function() {
         }
         var tdata = encodePackets(sendQueue)
 ;;;     self.logger.debug('post', retries, tdata);
+        if (Orbited.settings.enableFFPrivleges) {
+            try { 
+                netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
+            } catch (ex) { } 
+        }        
         xhr.open('POST', sessionUrl.render(), true)
         xhr.send(tdata)
 
@@ -1107,6 +1118,11 @@ Orbited.CometTransports.XHRStream = function() {
             if (typeof(xhr)== "undefined" || xhr == null) {
                 throw new Error("how did this happen?");
             }
+            if (Orbited.settings.enableFFPrivleges) {
+                try { 
+                    netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
+                } catch (ex) { } 
+            }        
             
             xhr.open('GET', url.render(), true)
             xhr.onreadystatechange = function() {
@@ -1364,6 +1380,11 @@ Orbited.CometTransports.LongPoll = function() {
                 throw new Error("how did this happen?");
             }
             
+            if (Orbited.settings.enableFFPrivleges) {
+                try { 
+                    netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
+                } catch (ex) { } 
+            }        
             xhr.open('GET', url.render(), true)
             xhr.onreadystatechange = function() {
 ;;;             self.logger.debug('readystate', xhr.readyState)
@@ -1567,6 +1588,11 @@ Orbited.CometTransports.Poll = function() {
                 throw new Error("how did this happen?");
             }
             
+            if (Orbited.settings.enableFFPrivleges) {
+                try { 
+                    netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
+                } catch (ex) { } 
+            }        
             xhr.open('GET', url.render(), true)
             xhr.onreadystatechange = function() {
                 switch(xhr.readyState) {
@@ -2056,7 +2082,7 @@ Orbited.URL = function(_url) {
 
 }
 
-
+Orbited.utf8 = {}
 Orbited.utf8.toUtf8 = function(s) {    
     var ret = [];
     var j = 0
