@@ -137,6 +137,7 @@ class FakeTCPTransport(object):
     def connectionLost(self):
         self.protocol.connectionLost(None)
             
+    hostHeader = property(lambda s: s.transportProtocol.hostHeader)
     
 class TCPConnectionResource(resource.Resource):
 
@@ -148,13 +149,14 @@ class TCPConnectionResource(resource.Resource):
     # since the last time we heard from the client.
     pingInterval = 40
 
-    def __init__(self, root, key, peer, host, **options):
+    def __init__(self, root, key, peer, host, hostHeader, **options):
         resource.Resource.__init__(self)
         
         self.root = root
         self.key = key
         self.peer = peer
         self.host = host
+        self.hostHeader = hostHeader
         self.transport = None
         self.cometTransport = None
         self.parentTransport = None
@@ -412,7 +414,8 @@ class TCPResource(resource.Resource):
             key = str(uuid.uuid4()).replace('-', '')
         print request.getClientIP(), repr(request.getClientIP())
         # request.client and request.host should be address.IPv4Address classes
-        self.connections[key] = TCPConnectionResource(self, key, request.client, request.host)
+        hostHeader = request.headers.get('Host', '')
+        self.connections[key] = TCPConnectionResource(self, key, request.client, request.host, hostHeader)
         self.listeningPort.connectionMade(self.connections[key])
         self.logger.debug('created conn: ', repr(self.connections[key]))
         request.setHeader('cache-control', 'no-cache, must-revalidate')

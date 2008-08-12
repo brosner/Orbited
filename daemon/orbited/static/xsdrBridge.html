@@ -129,29 +129,36 @@ function doNextRequest() {
     var xhr = createXHR();
     var responseIndex = 0;
     xhr.onreadystatechange = function() {
-        debug('onreadystatechange', xhr.readyState);
-        var payload = {
-            readyState: xhr.readyState
-        }
+        // NOTE: after an abort, a readystatechange will cause an error...
+        // TOOD: to aborts by pushing 'ABORT' instead of ifr.src= null from the
+        //       parent (Orbited.XSDR.abort)
         try {
-            payload['status'] = xhr.status
+;;;         debug('onreadystatechange', xhr.readyState);
+            var payload = {
+                readyState: xhr.readyState
+            }
+            try {
+                payload['status'] = xhr.status
+            }
+            catch(e) {           
+            }
+            try {
+                var data = xhr.responseText.slice(responseIndex)
+                responseIndex = xhr.responseText.length;
+                payload['responseText'] = data;
+            }
+            catch(e) {
+            }
+;;;         debug('pushing payload', payload);
+            push(["readystatechange", payload])
+    
+            if (xhr.readyState == 4) {
+                req = null;
+                return doNextRequest();
+            }
         }
-        catch(e) {           
-        }
-        try {
-            var data = xhr.responseText.slice(responseIndex)
-            responseIndex = xhr.responseText.length;
-            payload['responseText'] = data;
-        }
-        catch(e) {
-        }
-        debug('pushing payload', payload)
-        push(["readystatechange", payload])
-
-        if (xhr.readyState == 4) {
-            req = null;
-            return doNextRequest();
-        }
+    catch(e) {
+    }
     }
     xhr.open(smethod, surl, true)
     for (key in sheaders) {

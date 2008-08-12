@@ -34,9 +34,9 @@ map = {
         #'crt': 'orbited.crt',
     },
 
-    '[access]': [
-        #('irc.freenode.net', 6667),
-    ],
+    '[access]': {
+        #('irc.freenode.net', 6667): ['localhost:8001', '127.0.0.1:8001'],
+    },
 
     '[static]': {
         #'tmp': '/tmp',
@@ -103,12 +103,20 @@ def _load(f):
             
             # assign each source in the proxy section to a target address and port
             if section == '[access]':
-                if ':' in line:
-                    addr, port = line.split(':', 1)
-                    port = int(port)
+                if '->' not in line:
+                    raise ValueError, "line %s -- [access] lines must contain an ->" % (i+1)
+                source, dest = line.split('->')
+                source, dest = source.strip(), dest.strip()
+                print 'dest is', dest
+                print 'source is', source
+                if ':' in dest:
+                    daddr, dport = dest.split(':', 1)
+                    dport = int(dport)
                 else:
-                    addr, port = target, 80
-                map[section].append((addr, port))
+                    daddr, dport = dest, 80
+                if (daddr, dport) not in map[section]:
+                    map[section][(daddr, dport)] = []
+                map[section][(daddr, dport)].append(source)
                 continue
             if section == '[listen]':
                 map[section].append(line)

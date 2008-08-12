@@ -50,7 +50,12 @@ class ProxyIncomingProtocol(Protocol):
                 self.transport.loseConnection()
                 return
             peer = self.transport.getPeer()
-            if (host, port) not in config.map['[access]']:
+            allowed = False
+            for source in config.map['[access]'].get((host, port), []):
+                if source == self.transport.hostHeader or source == '*':
+                    allowed = True
+                    break
+            if not allowed:
                 self.logger.warn('Unauthorized connect from %r:%d to %r:%d' % (peer.host, peer.port, host, port))
                 self.transport.write("0" + str(ERRORS['Unauthorized']))
                 self.transport.loseConnection()
