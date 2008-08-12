@@ -14,13 +14,13 @@
                             name: "base64_encode",
                             runTest: function(t) {
                                 var encode = Orbited.base64.encode;
-                                t.is("", encode([]));
-                                t.is("AQ==", encode([1]));
-                                t.is("AQI=", encode([1, 2]));
-                                t.is("AQID", encode([1, 2, 3]));
-                                t.is("AA==", encode([0]));
-                                t.is("AAA=", encode([0, 0]));
-                                t.is("AAAA", encode([0, 0, 0]));
+                                t.is("", encode(""));
+                                t.is("AQ==", encode("\x01"));
+                                t.is("AQI=", encode("\x01\x02"));
+                                t.is("AQID", encode("\x01\x02\x03"));
+                                t.is("AA==", encode("\0"));
+                                t.is("AAA=", encode("\0\0"));
+                                t.is("AAAA", encode("\0\0\0"));
                             }
                         },
 
@@ -28,13 +28,13 @@
                             name: "base64_decode",
                             runTest: function(t) {
                                 var decode = Orbited.base64.decode;
-                                t.is([], decode(""));
-                                t.is([1], decode("AQ=="));
-                                t.is([1, 2], decode("AQI="));
-                                t.is([1, 2, 3], decode("AQID"));
-                                t.is([0], decode("AA=="));
-                                t.is([0, 0], decode("AAA="));
-                                t.is([0, 0, 0], decode("AAAA"));
+                                t.is("", decode(""));
+                                t.is("\x01", decode("AQ=="));
+                                t.is("\x01\x02", decode("AQI="));
+                                t.is("\x01\x02\x03", decode("AQID"));
+                                t.is("\0", decode("AA=="));
+                                t.is("\0\0", decode("AAA="));
+                                t.is("\0\0\0", decode("AAAA"));
                             }
                         }
                     ]
