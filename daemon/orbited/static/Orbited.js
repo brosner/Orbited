@@ -1740,7 +1740,7 @@ Orbited.CometTransports.HTMLFile = function() {
 ;;;     self.logger.debug('doing reconnect... ' + restartTimeout);
         restartTimeout*=2;
         ifr.src = restartUrl;
-        var restartTimer = window.setTimeout(reconnect, restartTimeout)        
+        restartTimer = window.setTimeout(reconnect, restartTimeout)        
     }
 
     self.streamStarted = function() {
@@ -1769,6 +1769,8 @@ Orbited.CometTransports.HTMLFile = function() {
         if (self.readyState == 2) {
             return
         }
+;;;     self.logger.debug('close called, clearing timer');
+        window.clearTimeout(restartTimer);
         self.readyState = 2
         ifr.src = 'about:blank'
         htmlfile = null;

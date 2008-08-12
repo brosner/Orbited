@@ -109,8 +109,6 @@ def _load(f):
                     raise ValueError, "line %s -- [access] lines must contain an ->" % (i+1)
                 source, dest = line.split('->')
                 source, dest = source.strip(), dest.strip()
-                print 'dest is', dest
-                print 'source is', source
                 if ':' in dest:
                     daddr, dport = dest.split(':', 1)
                     dport = int(dport)
