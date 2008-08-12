@@ -40,6 +40,9 @@ Orbited.settings.protocol = 'http'
 Orbited.settings.log = false;
 Orbited.settings.HEARTBEAT_TIMEOUT = 6000
 Orbited.settings.POLL_INTERVAL = 2000
+Orbited.settings.pageLoggerHeight = '200px'
+Orbited.settings.pageLoggerWidth = null;
+
 Orbited.singleton = {}
 
 
@@ -151,7 +154,7 @@ Orbited.util.loggingSystem = null;
 if (window.Log4js) {
     Orbited.util.loggingSystem = 'log4js';
 }
-else if (window.console && console.log) {
+else if (window.console && console.firebug) {
     Orbited.util.loggingSystem = 'firebug';
 }
 
@@ -167,7 +170,7 @@ Orbited.getLogger = function(name) {
                 break;
 
             default:
-                logger = new Orbited.Loggers.EmptyLogger(name);
+                logger = new Orbited.Loggers.PageLogger(name);
                 break;
         }
         Orbited.loggers[name] = logger;
@@ -222,22 +225,45 @@ Orbited.Loggers.FirebugLogger = function(name) {
         console.trace.apply(this, padArgs(arguments))
     }
 }
+Orbited.singleton.pageLoggerPane = null;
 
-Orbited.Loggers.EmptyLogger = function(name) {
+Orbited.Loggers.PageLogger = function(name) {
     var self = this;
     self.enabled = false;
     self.name = name;
+
+    var checkPane = function() {
+        if (!Orbited.singleton.pageLoggerPane) {
+            var p = document.createElement("div");
+            p.border = "1px solid black"
+            if(Orbited.settings.pageLoggerHeight) {
+                p.style.height = Orbited.settings.pageLoggerHeight;
+            }
+            if(Orbited.settings.pageLoggerWidth) {
+                p.style.height = Orbited.settings.pageLoggerWidth;
+            }
+
+            p.style.overflow = "scroll"
+            document.body.appendChild(p)
+            Orbited.singleton.pageLoggerPane = p
+        }
+    }
+    var show = function(data) {
+        checkPane();
+        var d = document.createElement('div')
+        d.innerHTML = data
+        Orbited.singleton.pageLoggerPane.appendChild(d)
+        Orbited.singleton.pageLoggerPane.scrollTop = Orbited.singleton.pageLoggerPane.scrollHeight;
+    }
     self.log = function() {
     }
     self.debug = function() {
         if (!self.enabled) { return }
-        var newArgs = [ "<b>" + name + "</b>" ]
+        var newArgs = [ new Date(), "<b>" + name + "</b>" ]
         for (var i = 0; i < arguments.length; ++i) {
             newArgs.push(arguments[i]);
         }
-        d = document.createElement('div')
-        d.innerHTML = newArgs.join(", ")
-        document.body.appendChild(d)
+        show(newArgs.join(", "));
     }
     self.info = function() {
     }
@@ -601,6 +627,7 @@ Orbited.CometSession = function() {
                 
                 case 4:
                     if (xhr.status == 200) {
+                        resetTimeout();
                         sendQueue.splice(0, numSent)
                         return doSend();
                     }
@@ -637,6 +664,7 @@ Orbited.CometSession = function() {
     }
 
     var resetTimeout = function() {
+;;;     self.logger.debug('reset Timeout', pingInterval+pingTimeout)
         unsetTimeout();
         timeoutTimer = window.setTimeout(timedOut, pingInterval + pingTimeout);
     }
@@ -645,6 +673,7 @@ Orbited.CometSession = function() {
 
     }
     var timedOut = function() {
+;;;     self.logger.debug('timed out!')
         doClose(Orbited.Errors.ConnectionTimeout)
     }
 };
