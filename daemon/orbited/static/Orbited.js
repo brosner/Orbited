@@ -349,6 +349,9 @@ Orbited.CometSession = function() {
     var xhr = null;
     var handshakeTimer = null;
     var cometTransport = null;
+    var pingInterval = 30000;
+    var pingTimeout = 30000;
+    var timeoutTimer = null;
     var lastPacketId = 0
     var sending = false;
 
@@ -375,6 +378,7 @@ Orbited.CometSession = function() {
                 if (xhr.status == 200) {
                     sessionKey = xhr.responseText;
 ;;;                 self.logger.debug('session key is: ', sessionKey)
+                    resetTimeout();
                     sessionUrl = new Orbited.URL(_url)
                     // START new URL way
 //                    sessionUrl.extendPath(sessionKey)
@@ -523,7 +527,22 @@ Orbited.CometSession = function() {
                         }
                         break;                    
                 }
+                break;
+            case 'opt':
+                var args = frame.data.split(',')
+                switch(args[0]) {
+                    case 'pingTimeout':
+                        pingTimeout = parseInt(args[1])*1000
+                        break
+                    case 'pingInterval':
+                        pingInterval = parseInt(args[1])*1000
+                        break;
+                    default:
+;;;                     self.logger.warn('unknown opt key', args[0])
+                        break;
+                }
         }
+        resetTimeout();
     }
     var transportOnClose = function() {
 ;;;     self.logger.debug('transportOnClose');
@@ -605,6 +624,7 @@ Orbited.CometSession = function() {
     
     var doClose = function(code) {
 ;;;     self.logger.debug('doClose', code)
+        unsetTimeout();
         self.readyState = self.READY_STATE_CLOSED;
         cometTransport.onReadFrame = function() {}
         if (cometTransport != null) {
@@ -614,6 +634,18 @@ Orbited.CometSession = function() {
         }
         self.onclose(code);
 
+    }
+
+    var resetTimeout = function() {
+        unsetTimeout();
+        timeoutTimer = window.setTimeout(timedOut, pingInterval + pingTimeout);
+    }
+    var unsetTimeout = function() {
+        window.clearTimeout(timeoutTimer);
+
+    }
+    var timedOut = function() {
+        doClose(Orbited.Errors.ConnectionTimeout)
     }
 };
 Orbited.CometSession.prototype.logger = Orbited.getLogger("Orbited.CometSession");
@@ -1088,20 +1120,27 @@ Orbited.CometTransports.XHRStream = function() {
                         }
                         break;
                     case 4:
+                        var doReconnect = true;
                         try {
-                            xhr.status
+                            if (xhr.status === null) {
+                                doReconnect = true;
+                            }
+                            else {
+                                doReconnect = false;
+                            }
                         }
                         catch(e) {
+                        }
+                        if (doReconnect) {
                             // Expoential backoff: Every time we fail to 
                             // reconnect, double the interval.
                             // TODO cap the max value. 
                             retryInterval *= 2;
 //                            self.logger.debug('retryInterval', retryInterval)
                             window.clearTimeout(heartbeatTimer);
-                            window.setTimeout(reconnect, retryInterval)
+                            retryTimer = window.setTimeout(reconnect, retryInterval)
                             return;
                         }
-
                         switch(xhr.status) {
                             case 200:
 //                                alert('finished, call process');

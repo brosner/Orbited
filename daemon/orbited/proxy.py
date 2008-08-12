@@ -11,6 +11,9 @@ ERRORS = {
     'RemoteConnectionTimeout': 104,
     'Unauthorized': 106,
 }
+pingTimeout  = int(config.map['[global]']['session.ping_timeout'])
+pingInterval = int(config.map['[global]']['session.ping_interval'])
+
 
 class ProxyIncomingProtocol(Protocol):
     """
@@ -22,6 +25,8 @@ class ProxyIncomingProtocol(Protocol):
 
     def connectionMade(self):
         # TODO: add handshake timer
+        self.transport.pingTimeout = pingTimeout
+        self.transport.pingInterval = pingInterval
         self.logger.debug("connectionMade")
         self.state = 'handshake'
         # TODO rename this to outgoingProtocol

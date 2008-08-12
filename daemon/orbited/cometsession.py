@@ -139,15 +139,30 @@ class FakeTCPTransport(object):
             
     hostHeader = property(lambda s: s.transportProtocol.hostHeader)
     
-class TCPConnectionResource(resource.Resource):
-
-    logger = logging.get_logger('orbited.cometsession.TCPConnectionResource')
-
+    def _get_pingTimeout(self):
+        return self.transportProtocol._pingTimeout
+    
+    def _get_pingInterval(self):
+        return self.transportProtocol._pingInterval
+    
+    def _set_pingTimeout(self, v):
+        self.transportProtocol.pingTimeout = v
+        self.transportProtocol.send(TCPOption('pingTimeout', v))
+        
+    def _set_pingInterval(self, v):
+        self.transportProtocol.pingInterval = v
+        self.transportProtocol.send(TCPOption('pingInterval', v))
+        
     # Determines timeout interval after ping has been sent
-    pingTimeout = 40
+    pingTimeout = property(_get_pingTimeout, _set_pingTimeout)
     # Determines interval to wait before sending a ping
-    # since the last time we heard from the client.
-    pingInterval = 40
+    pingInterval = property(_get_pingInterval, _set_pingInterval)
+    
+    
+class TCPConnectionResource(resource.Resource):
+    pingTimeout = 30
+    pingInterval = 30
+    logger = logging.get_logger('orbited.cometsession.TCPConnectionResource')
 
     def __init__(self, root, key, peer, host, hostHeader, **options):
         resource.Resource.__init__(self)
@@ -380,6 +395,8 @@ class TCPConnectionResource(resource.Resource):
             self.cometTransport.sendPacket('ping', str(packetId))
         elif isinstance(data, TCPClose):
             self.cometTransport.sendPacket('close', str(packetId))
+        elif isinstance(data, TCPOption):
+            self.cometTransport.sendPacket('opt', str(packetId), data.payload)
         else:
             self.cometTransport.sendPacket('data', str(packetId), base64.b64encode(data))
     
@@ -391,12 +408,21 @@ class TCPConnectionResource(resource.Resource):
         ackId = self.lastAckId + len(self.unackQueue)
 #        self.cometTransport.sendPacket('id', ackId)
         
+
+    
+
+        
+        
 class TCPPing(object):
     pass
 
 class TCPClose(object):
     pass
 
+class TCPOption(object):
+    def __init__(self, name, val):
+        self.payload = str(name) + ',' + str(val)
+        
 class TCPResource(resource.Resource):
     
     logger = logging.get_logger('orbited.cometsession.TCPResource')
