@@ -438,9 +438,8 @@ class TCPResource(resource.Resource):
         key = None
         while key is None or key in self.connections:
             key = str(uuid.uuid4()).replace('-', '')
-        print request.getClientIP(), repr(request.getClientIP())
         # request.client and request.host should be address.IPv4Address classes
-        hostHeader = request.headers.get('Host', '')
+        hostHeader = request.headers.get('host', '')
         self.connections[key] = TCPConnectionResource(self, key, request.client, request.host, hostHeader)
         self.listeningPort.connectionMade(self.connections[key])
         self.logger.debug('created conn: ', repr(self.connections[key]))
