@@ -51,6 +51,7 @@ Orbited.Errors = {}
 Orbited.Errors.ConnectionTimeout = 101
 Orbited.Errors.InvalidHandshake = 102
 Orbited.Errors.UserConnectionReset = 103
+Orbited.Errors.Unauthorized = 106
 
 Orbited.Statuses = {}
 Orbited.Statuses.ServerClosedConnection = 201
@@ -768,9 +769,6 @@ Orbited.TCPSocket = function() {
             throw new Error('how did this happen');
         }
         if (binary) {
-            if (!(data instanceof Array)) {
-                throw new Error("invalid payload: binary mode is set");
-            }
         }
         else {
             data = Orbited.utf8.fromUtf8(data)
