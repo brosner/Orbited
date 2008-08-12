@@ -765,12 +765,10 @@ Orbited.TCPSocket = function() {
     }
 
     self.send = function(data) {
-        if (!session) {
-            throw new Error('how did this happen');
+        if (self.readyState != self.READY_STATE_OPEN) {
+            throw new Error("Invalid readyState");
         }
-        if (binary) {
-        }
-        else {
+        if (!binary) {
             data = Orbited.utf8.fromUtf8(data)
         }
 ;;;     self.logger.debug('SEND: ', data)
