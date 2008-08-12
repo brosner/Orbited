@@ -2099,6 +2099,7 @@ Orbited.URL = function(_url) {
 }
 
 Orbited.utf8 = {}
+// TODO rename to decode
 Orbited.utf8.toUtf8 = function(s) {    
     var ret = [];
     var j = 0
@@ -2141,6 +2142,7 @@ Orbited.utf8.toUtf8 = function(s) {
     return [ret.join(""), j];
 }
 
+// TODO rename to encode
 Orbited.utf8.fromUtf8 = function(text) {
     var ret = [];
     
