@@ -779,14 +779,14 @@ Orbited.TCPSocket = function() {
             throw new Error("Invalid readyState");
         }
         if (!binary) {
-            data = Orbited.utf8.fromUtf8(data)
+            data = Orbited.utf8.encode(data)
         }
 ;;;     self.logger.debug('SEND: ', data)
         session.send(data)
     }
 
     var process = function() {
-        var result = Orbited.utf8.toUtf8(buffer)
+        var result = Orbited.utf8.decode(buffer)
         var data = result[0]
         var i = result[1]
         buffer = buffer.slice(i)
@@ -817,7 +817,7 @@ Orbited.TCPSocket = function() {
                     case 'initial':
                         // NOTE: we should only get complete payloads during
                         //       the handshake. no need to buffer, then parse
-                        data = Orbited.utf8.toUtf8(data)[0];
+                        data = Orbited.utf8.decode(data)[0];
 ;;;                     self.logger.debug('initial');
 ;;;                     self.logger.debug('data', data)
 ;;;                     self.logger.debug('len', data.length);
@@ -864,7 +864,7 @@ Orbited.TCPSocket = function() {
         // TODO: TCPSocket handshake
         var payload = hostname + ':' + port + '\n' 
 ;;;     self.logger.debug('sessionOpen; sending:', payload)
-        payload = Orbited.utf8.fromUtf8(payload)
+        payload = Orbited.utf8.encode(payload)
 ;;;     self.logger.debug('encoded payload:', payload)
         X = payload
         session.send(payload)
@@ -2099,8 +2099,7 @@ Orbited.URL = function(_url) {
 }
 
 Orbited.utf8 = {}
-// TODO rename to decode
-Orbited.utf8.toUtf8 = function(s) {    
+Orbited.utf8.decode = function(s) {    
     var ret = [];
     var j = 0
     function pad6(str) {
@@ -2143,7 +2142,7 @@ Orbited.utf8.toUtf8 = function(s) {
 }
 
 // TODO rename to encode
-Orbited.utf8.fromUtf8 = function(text) {
+Orbited.utf8.encode = function(text) {
     var ret = [];
     
     function pad(str, len) {
