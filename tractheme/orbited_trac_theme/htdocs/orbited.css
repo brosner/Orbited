@@ -19,6 +19,7 @@ h1, h2, h3, h4 {
         background-color: rgb(33,50,66);
         margin: 0px -10px 0px -10px;
         padding: 8px;
+        padding-left: 32px;
 }
 #orbitednav li {
         display: inline;
@@ -154,7 +155,6 @@ h1, h2, h3, h4 {
     width:435px;
   }
   #homepage #visuals {
-    margin-left: 35px;
     width:420px;
     float:right;
   }
