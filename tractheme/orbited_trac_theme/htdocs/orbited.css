@@ -1,4 +1,8 @@
-body { background: #fff; color: #000; margin: 10px; padding: 0; }
+body {
+  background: #fff; color: #000;
+  margin: 0 10px 10px 10px;
+  padding: 0;
+}
 body, th, td {
  font: normal 13px Verdana, 'Helvetica Neue', Helvetica, 'DejaVu Sans',
                    'Bitstream Vera Sans', Arial, sans-serif;
@@ -50,7 +54,7 @@ h1, h2, h3, h4 {
 /* Header */
 #header {
   background-color: #3c5c7a;
-  margin: -10px -10px 0px -10px;
+  margin: 0 -10px 0px -10px;
   padding: 10px 0 5px 0;
 }
 #header img { border: none; margin: 0; }
