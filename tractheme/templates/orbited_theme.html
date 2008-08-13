@@ -1,0 +1,75 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:xi="http://www.w3.org/2001/XInclude"
+      xmlns:py="http://genshi.edgewall.org/"
+      py:strip="">
+  <?python from genshi.builder import tag ?>
+
+  <div py:def="navigation(category)" id="${category}" class="nav">
+    <ul py:if="chrome.nav[category]">
+      <li py:for="idx, item in  enumerate(chrome.nav[category])"
+          class="${classes(first_last(idx, chrome.nav[category]), active=item.active)}">${item.label}</li>
+    </ul>
+  </div>
+
+  <body py:match="body">
+    <div id="banner">
+      <div id="header">
+        <a id="logo" href="/">
+
+          <img src="${href.chrome('theme', 'orbited-futura-brush.png')}" alt="Orbited: Networking for the Web" />
+        </a>
+     </div>
+    
+      <!--form id="search" action="${href.search()}" method="get">
+        <div py:if="'SEARCH_VIEW' in perm">
+          <label for="proj-search">Search:</label>
+          <input type="text" id="proj-search" name="q" size="18" accesskey="f" value="" />
+          <input type="submit" value="Search" />
+        </div>
+      </form-->
+      <ul id="orbitednav">
+    <li><a href="/">Home</a></li>
+    <li><a href="/wiki/Download">Download</a></li>
+    <li><a href="/wiki/Documentation">Documentation</a></li>
+    <li><a href="/wiki/Community">Community</a></li>
+    <li><a href="/wiki/Development">Development</a></li>
+    <li><a href="/blog">Blog</a></li>
+    <li><a href="/wiki/About">About</a></li>
+
+    </ul>
+
+      ${navigation('metanav')}
+    </div>
+    ${navigation('mainnav')}
+    <div id="ctxtnav" class="nav">
+        <ul>
+        <li py:for="i, elm in enumerate(chrome.ctxtnav)" class="${i == 0 and 'first ' or None}${i+1 == len(chrome.ctxtnav) and 'last' or None}">$elm</li>
+        </ul>
+    </div>
+    ${select('*|text()')}
+   <div id="footer">
+     Orbited &copy; 2008 Michael Carter
+     </div>
+  <script>
+  /* We only want the extra trac menu stuff for the development section */
+  if (document.location.pathname == "/wiki/Development") {
+      document.getElementById("metanav").style.display = "block"
+      document.getElementById("mainnav").style.display = "block"
+      document.getElementById("ctxtnav").style.display = "block"
+  }
+  /* we want to be able to download the source in other formats in some cases */
+  var cpath = document.location.pathname
+  if( cpath.indexOf("/browser") == 0 || cpath.indexOf("/attachment") == 0) {
+      document.getElementById("altlinks").style.display = "block"
+  }
+
+
+  </script>
+  </body>
+
+  <xi:include href="site.html"><xi:fallback /></xi:include>
+
+</html>
