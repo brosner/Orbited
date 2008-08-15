@@ -786,15 +786,10 @@ Orbited.TCPSocket = function() {
     }
 
     var process = function() {
-        if (binary) {
-            var data = buffer;
-            buffer = "";
-        } else {
-            var result = Orbited.utf8.decode(buffer);
-            var data = result[0];
-            var i = result[1];
-            buffer = buffer.slice(i);
-        }
+        var result = Orbited.utf8.decode(buffer);
+        var data = result[0];
+        var i = result[1];
+        buffer = buffer.slice(i);
         if (data.length > 0) {
             window.setTimeout(function() { self.onread(data) }, 0);
         }
@@ -805,14 +800,12 @@ Orbited.TCPSocket = function() {
             case self.READY_STATE_OPEN:
 ;;;             self.logger.debug('READ: ', data)
                 var data = data;
-                if (self.binary) {
+                if (binary) {
                     window.setTimeout(function() { self.onread(data) }, 0);
                 }
                 else {
 ;;;                 self.logger.debug('start buffer size:', buffer.length)
                     buffer += data;
-//                    data.splice(0,0,buffer.length, 0)
-//                    buffer.splice.apply(buffer, data)
                     process()
 ;;;                 self.logger.debug('end buffer size:', buffer.length)
                 }
