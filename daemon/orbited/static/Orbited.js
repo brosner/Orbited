@@ -786,10 +786,15 @@ Orbited.TCPSocket = function() {
     }
 
     var process = function() {
-        var result = Orbited.utf8.decode(buffer)
-        var data = result[0]
-        var i = result[1]
-        buffer = buffer.slice(i)
+        if (binary) {
+            var data = buffer;
+            buffer = "";
+        } else {
+            var result = Orbited.utf8.decode(buffer);
+            var data = result[0];
+            var i = result[1];
+            buffer = buffer.slice(i);
+        }
         if (data.length > 0) {
             window.setTimeout(function() { self.onread(data) }, 0);
         }
