@@ -127,7 +127,7 @@
                             setUp: setUpSocket,
                             tearDown: tearDownSocket,
                             runTest: function(t) {
-                                var bytes = [1, 2, 3, 4];
+                                var bytes = "\x01\x02\x03\x04";
                                 return runEchoTest(t, bytes, true);
                             }
                         },
@@ -138,7 +138,7 @@
                             setUp: setUpSocket,
                             tearDown: tearDownSocket,
                             runTest: function(t) {
-                                var bytes = [0, 0];
+                                var bytes = "\0\0";
                                 return runEchoTest(t, bytes, true);
                             }
                         }
