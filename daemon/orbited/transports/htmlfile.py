@@ -23,7 +23,11 @@ class HTMLFileTransport(CometTransport):
         # Force reconnect ever 30 seconds
         self.totalBytes = 0
 #        self.closeTimer = reactor.callLater(5, self.triggerCloseTimeout)
+        # See "How to prevent caching in Internet Explorer"
+        #     at http://support.microsoft.com/kb/234067
         self.request.setHeader('cache-control', 'no-cache, must-revalidate')
+        self.request.setHeader('pragma', 'no-cache')
+        self.request.setHeader('expires', '-1')
         self.request.write(self.initialData)
 
     def triggerCloseTimeout(self):
@@ -36,6 +40,7 @@ class HTMLFileTransport(CometTransport):
         self.request.write(payload);
         self.totalBytes += len(payload)
         if (self.totalBytes > MAXBYTES):
+            logger.debug('write: closing because session MAXBYTES was exceeded')
             self.close()
 
     def writeHeartbeat(self):
