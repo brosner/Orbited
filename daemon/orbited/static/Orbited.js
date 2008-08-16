@@ -636,10 +636,21 @@ Orbited.CometSession = function() {
 ;;;     self.logger.debug('setting sending=true');
         var numSent = sendQueue.length
         sessionUrl.setQsParameter('ack', lastPacketId)
-//        xhr = createXHR();
+        var tdata = encodePackets(sendQueue)
+;;;     self.logger.debug('post', retries, tdata);
+        if (Orbited.settings.enableFFPrivleges) {
+            try { 
+                netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
+            } catch (ex) { } 
+        }        
+        xhr.open('POST', sessionUrl.render(), true)
+        // NB: its awkard, but for reusing the XHR object in IE (7 at least),
+        //     we can only reset the onreadystatechange *after* we call open;
+        //     if we don't do this, the XHR will stop sending data.
+        // See "Reusing XMLHttpRequest Object in IE"
+        //     at http://keelypavan.blogspot.com/2006/03/reusing-xmlhttprequest-object-in-ie.html
         xhr.onreadystatechange = function() {
             switch(xhr.readyState) {
-                
                 case 4:
                     if (xhr.status == 200) {
                         resetTimeout();
@@ -657,16 +668,7 @@ Orbited.CometSession = function() {
                     }
             }
         }
-        var tdata = encodePackets(sendQueue)
-;;;     self.logger.debug('post', retries, tdata);
-        if (Orbited.settings.enableFFPrivleges) {
-            try { 
-                netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead'); 
-            } catch (ex) { } 
-        }        
-        xhr.open('POST', sessionUrl.render(), true)
         xhr.send(tdata)
-
     }
     
     var doClose = function(code) {
