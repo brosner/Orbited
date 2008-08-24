@@ -58,14 +58,18 @@
   // genshi doesn't seem to want to let us put  two ampersand symbols in a row
   // so we'll just duplicate the if clause
   if (document.location.pathname != '/') {
+      if (document.location.pathname.slice(0,6) != '/wiki/') {  
       document.getElementById("metanav").style.display = "block"
       document.getElementById("mainnav").style.display = "block"
       document.getElementById("ctxtnav").style.display = "block"
+	  }
   }  
   if (document.location.pathname.slice(0,6) != '/wiki/') {  
-      document.getElementById("metanav").style.display = "block"
-      document.getElementById("mainnav").style.display = "block"
-      document.getElementById("ctxtnav").style.display = "block"  
+      if (document.location.pathname != '/') {
+        document.getElementById("metanav").style.display = "block"
+        document.getElementById("mainnav").style.display = "block"
+        document.getElementById("ctxtnav").style.display = "block"  
+	  }
   }
   /* we want to be able to download the source in other formats in some cases */
   var cpath = document.location.pathname
