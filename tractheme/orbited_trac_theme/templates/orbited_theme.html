@@ -55,11 +55,18 @@
      </div>
   <script>
   /* We only want the extra trac menu stuff for the development section */
-  if ((document.location.pathname != '/') && (document.location.pathname.slice(0,6) != '/wiki/')) {
+  // genshi doesn't seem to want to let us put && for javascript and, so we'll
+  // just duplicate the if clause
+  if (document.location.pathname != '/') {
       document.getElementById("metanav").style.display = "block"
       document.getElementById("mainnav").style.display = "block"
       document.getElementById("ctxtnav").style.display = "block"
   }  
+  if (document.location.pathname.slice(0,6) != '/wiki/') {  
+      document.getElementById("metanav").style.display = "block"
+      document.getElementById("mainnav").style.display = "block"
+      document.getElementById("ctxtnav").style.display = "block"  
+  }
   /* we want to be able to download the source in other formats in some cases */
   var cpath = document.location.pathname
   if( cpath.indexOf("/browser") == 0 || cpath.indexOf("/attachment") == 0) {
