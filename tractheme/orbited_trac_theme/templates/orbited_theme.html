@@ -55,8 +55,8 @@
      </div>
   <script>
   /* We only want the extra trac menu stuff for the development section */
-  // genshi doesn't seem to want to let us put && for javascript and, so we'll
-  // just duplicate the if clause
+  // genshi doesn't seem to want to let us put  two ampersand symbols in a row
+  // so we'll just duplicate the if clause
   if (document.location.pathname != '/') {
       document.getElementById("metanav").style.display = "block"
       document.getElementById("mainnav").style.display = "block"
