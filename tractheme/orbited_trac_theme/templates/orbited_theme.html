@@ -57,8 +57,13 @@
   /* We only want the extra trac menu stuff for the development section */
   // genshi doesn't seem to want to let us put  two ampersand symbols in a row
   // so we'll just duplicate the if clause
+  if (document.location.pathname == '/wiki/Development') {
+      document.getElementById("metanav").style.display = "block"
+      document.getElementById("mainnav").style.display = "block"
+      document.getElementById("ctxtnav").style.display = "block"  
+  }
   if (document.location.pathname != '/') {
-      if (document.location.pathname.slice(0,6) != '/wiki/') {  
+       if (document.location.pathname.slice(0,6) != '/wiki/') {  
       document.getElementById("metanav").style.display = "block"
       document.getElementById("mainnav").style.display = "block"
       document.getElementById("ctxtnav").style.display = "block"
