@@ -448,7 +448,7 @@ Orbited.CometSession = function() {
         if (self.readyState != self.READY_STATE_OPEN) {
             throw new Error("Invalid readyState")
         }
-        data = Orbited.base64.encode(data)
+        var data = Orbited.base64.encode(data)
         sendQueue.push([++packetCount, "data", data])
 ;;;     self.logger.debug('sending==', sending);
         if (!sending) {
@@ -539,7 +539,7 @@ Orbited.CometSession = function() {
                 break;
             case 'data':
 ;;;             self.logger.debug('base64 decoding ' + frame.data.length + ' bytes of data')
-                data = Orbited.base64.decode(frame.data)
+                var data = Orbited.base64.decode(frame.data)
 ;;;             self.logger.debug('decode complete');
                 self.onread(data);
                 break;
@@ -2173,10 +2173,6 @@ Orbited.utf8.encode = function(text) {
     return ret.join("");
 }
 
-
-})();
-
-
 if (!this.JSON) {
 
 // Create a JSON object only if one does not already exist. We create the
@@ -2495,3 +2491,5 @@ replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
         };
     }();
 }
+Orbited.JSON = JSON;
+})();
