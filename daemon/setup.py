@@ -21,7 +21,7 @@ _install_requires = [ "demjson" ]
 
 setup(
     name='orbited',
-    version='0.6.0',
+    version='0.6.1',
     author='Michael Carter',
     author_email='CarterMichael@gmail.com',
     url='http://www.orbited.org',
