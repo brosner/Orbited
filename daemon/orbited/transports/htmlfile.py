@@ -13,7 +13,7 @@ class HTMLFileTransport(CometTransport):
     initialData = format_block('''
             <html>
              <head>
-              <script src="../../static/HTMLFileFrame.js"></script>
+              <script src="../static/HTMLFileFrame.js"></script>
              </head>
              <body>
         ''')
@@ -28,6 +28,7 @@ class HTMLFileTransport(CometTransport):
         self.request.setHeader('cache-control', 'no-cache, must-revalidate')
         self.request.setHeader('pragma', 'no-cache')
         self.request.setHeader('expires', '-1')
+        logger.debug('send initialData: ', self.initialData)
         self.request.write(self.initialData)
 
     def triggerCloseTimeout(self):
@@ -37,6 +38,7 @@ class HTMLFileTransport(CometTransport):
         # TODO make some JS code to remove the script elements from DOM
         #      after they are executed.
         payload = '<script>e(%s)</script>' % (json.encode(packets),)
+        logger.debug('write ', payload)
         self.request.write(payload);
         self.totalBytes += len(payload)
         if (self.totalBytes > MAXBYTES):

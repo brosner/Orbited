@@ -49,7 +49,13 @@ def update(**kwargs):
     map.update(kwargs)
     return True
 
-def setup(argv):
+defaultPaths = [
+    os.path.join('/', 'etc', 'orbited.cfg'),
+    os.path.join('/', 'Program Files', 'Orbited', 'etc', 'orbited.cfg'),
+    'orbited.cfg',
+]
+
+def setup(argv, paths=defaultPaths):
     parser = OptionParser()
     parser.add_option(
         "--config",
@@ -66,11 +72,6 @@ def setup(argv):
 
     if not options.config:
         # no config file specified, try to search it.
-        paths = [
-            os.path.join('/', 'etc', 'orbited.cfg'),
-            os.path.join('/', 'Program Files', 'Orbited', 'etc', 'orbited.cfg'),
-            'orbited.cfg',
-        ]
         for path in paths:
             if os.path.exists(path):
                 options.config = path

@@ -319,7 +319,6 @@ class TCPConnectionResource(resource.Resource):
         self.sendMsgQueue()
         if not self.open:
             self.open = True
-            self.packetId += 1
             self.cometTransport.sendPacket("open", self.packetId)
         self.cometTransport.flush()
 
@@ -372,7 +371,7 @@ class TCPConnectionResource(resource.Resource):
         ackId = min(ackId, self.packetId)
         if ackId <= self.lastAckId:
             return
-        for i in range(ackId - self.lastAckId - 1): # -1 as the OPEN packet need not be ack'ed
+        for i in range(ackId - self.lastAckId):
             self.unackQueue.pop(0)
         self.lastAckId = ackId
         

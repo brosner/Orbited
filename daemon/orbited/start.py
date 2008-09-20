@@ -25,9 +25,9 @@ def _setup_protocols(root):
             reactor.listenWith(port_class, factory=factory_class(), resource=root, childName=child_path)
             logger.info('%s protocol active' % config_key)
 
-def _setup_static(root):
+def _setup_static(root, config):
     from twisted.web import static
-    for key, val in config.map['[static]'].items():
+    for key, val in config['[static]'].items():
         if key == 'INDEX':
             key = ''
         if root.getStaticEntity(key):
@@ -63,9 +63,13 @@ def main():
     site = server.Site(root)
 
     _setup_protocols(root)
-    _setup_static(root)
+    _setup_static(root, config.map)
+    start_listening(site, config.map, logger)
+    reactor.run()
 
-    for addr in config.map['[listen]']:
+def start_listening(site, config, logger):
+    from twisted.internet import reactor
+    for addr in config['[listen]']:
         url = urlparse.urlparse(addr)
         hostname = url.hostname or ''
         if url.scheme == 'http':
@@ -73,8 +77,8 @@ def main():
             reactor.listenTCP(url.port, site, interface=hostname)
         elif url.scheme == 'https':
             from twisted.internet import ssl
-            crt = config.map['[ssl]']['crt']
-            key = config.map['[ssl]']['key']
+            crt = config['[ssl]']['crt']
+            key = config['[ssl]']['key']
             try:
                 ssl_context = ssl.DefaultOpenSSLContextFactory(key, crt)
             except ImportError:
@@ -88,7 +92,6 @@ def main():
             logger.error("Invalid Listen URI: %s" % addr)
             sys.exit(-1)
 
-    reactor.run()
 
 if __name__ == "__main__":
     main()
