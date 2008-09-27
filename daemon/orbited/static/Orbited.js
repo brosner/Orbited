@@ -258,16 +258,28 @@ Orbited.Loggers.PageLogger = function(name) {
         Orbited.singleton.pageLoggerPane.scrollTop = Orbited.singleton.pageLoggerPane.scrollHeight;
     }
     self.log = function() {
+        if (!self.enabled) { return }
+        var newArgs = [ "log", new Date(), "debug", "<b>" + name + "</b>" ]
+        for (var i = 0; i < arguments.length; ++i) {
+            newArgs.push(arguments[i]);
+        }
+        show(newArgs.join(", "));
     }
     self.debug = function() {
         if (!self.enabled) { return }
-        var newArgs = [ new Date(), "<b>" + name + "</b>" ]
+        var newArgs = [ new Date(), "debug", "<b>" + name + "</b>" ]
         for (var i = 0; i < arguments.length; ++i) {
             newArgs.push(arguments[i]);
         }
         show(newArgs.join(", "));
     }
     self.info = function() {
+        if (!self.enabled) { return }
+        var newArgs = [ new Date(), "info", "<b>" + name + "</b>" ]
+        for (var i = 0; i < arguments.length; ++i) {
+            newArgs.push(arguments[i]);
+        }
+        show(newArgs.join(", "));
     }
     self.warn = function() {
     }    
