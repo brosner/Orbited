@@ -353,8 +353,10 @@ class TCPConnectionResource(resource.Resource):
             self.logger.debug('close cometTransport %s' % repr(self.cometTransport))
             self.cometTransport.sendPacket('close', "", reason)
             self.cometTransport.flush()
-            self.cometTransport.close()
-            self.cometTransport = None
+            # previous line can cause cometTransport to close
+            if self.cometTransport:
+                self.cometTransport.close()
+                self.cometTransport = None
         self.connectionLost()
         # NOTE:
         # else:
