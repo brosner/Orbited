@@ -14,7 +14,7 @@ static_types = [
     '*.template'
 ]
 
-_install_requires = [ "demjson" ]
+_install_requires = [ "demjson", "morbid" ]
 
 #if sys.platform != "win32":
 #    _install_requires.append("Twisted")

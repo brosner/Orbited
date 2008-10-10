@@ -24,7 +24,7 @@ def _setup_protocols(root):
             factory_class = _import(factory_class_import)
             reactor.listenWith(port_class, factory=factory_class(), resource=root, childName=child_path)
             logger.info('%s protocol active' % config_key)
-
+    
 def _setup_static(root, config):
     from twisted.web import static
     for key, val in config['[static]'].items():
@@ -45,6 +45,7 @@ def main():
     # we can now safely get loggers.
     global logger; logger = logging.get_logger('orbited.start')
 
+
     # NB: we need to install the reactor before using twisted.
     reactor_name = config.map['[global]'].get('reactor')
     if reactor_name:
@@ -60,6 +61,7 @@ def main():
     root = resource.Resource()
     static_files = static.File(os.path.join(os.path.dirname(__file__), 'static'))
     root.putChild('static', static_files)
+    #static_files.putChild('orbited.swf', static.File(os.path.join(os.path.dirname(__file__), 'flash', 'orbited.swf')))
     site = server.Site(root)
 
     _setup_protocols(root)
@@ -69,10 +71,17 @@ def main():
 
 def start_listening(site, config, logger):
     from twisted.internet import reactor
+    # allow stomp:// URIs to be parsed by urlparse 
+    urlparse.uses_netloc.append('stomp')
+
     for addr in config['[listen]']:
         url = urlparse.urlparse(addr)
         hostname = url.hostname or ''
-        if url.scheme == 'http':
+        if url.scheme == 'stomp':
+            logger.info('Listening stomp@%s' % url.port)
+            from morbid import StompFactory
+            reactor.listenTCP(url.port, StompFactory(), interface=hostname)     
+        elif url.scheme == 'http':
             logger.info('Listening http@%s' % url.port)
             reactor.listenTCP(url.port, site, interface=hostname)
         elif url.scheme == 'https':

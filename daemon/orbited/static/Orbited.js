@@ -2530,4 +2530,22 @@ replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
 }
 Orbited.JSON = JSON;
 
+
 })();
+
+
+// Try to auto detect the Orbited port and hostname
+(function() {
+try {
+    var scripts = document.getElementsByTagName('script')
+    for (var i = 0; i < scripts.length; ++i) {
+        var script = scripts[0]
+        if (script.src.match('/static/Orbited\.js$')) {
+            var url = new Orbited.URL(script.src)
+            Orbited.settings.hostname = url.domain;
+            Orbited.settings.port = url.port;
+            break
+        }
+    }
+} catch(e) { }
+})()
