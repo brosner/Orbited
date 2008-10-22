@@ -10,6 +10,7 @@ ERRORS = {
     'InvalidHandshake': 102,
     'RemoteConnectionTimeout': 104,
     'Unauthorized': 106,
+    'RemoteConnectionFailed': 108,
 }
 pingTimeout  = int(config.map['[global]']['session.ping_timeout'])
 pingInterval = int(config.map['[global]']['session.ping_interval'])
@@ -68,13 +69,18 @@ class ProxyIncomingProtocol(Protocol):
             self.logger.access('new connection from %s:%s to %s:%d' % (peer.host, peer.port, host, port))
             self.state = 'connecting'
             client = ClientCreator(reactor, ProxyOutgoingProtocol, self)
-            client.connectTCP(host, port)
+            client.connectTCP(host, port).addErrback(self.errorConnection) 
                 # TODO: connect timeout or onConnectFailed handling...
         else:
             self.transport.write("0" + str(ERRORS['InvalidHandshake']))            
             self.state = 'closed'
             self.transport.loseConnection()
 
+    def errorConnection(self, err):
+        self.logger.warn("Connection Error %s" % (err,))
+        self.transport.write("0" + str(ERRORS['RemoteConnectionFailed']))
+        self.transport.loseConnection()
+                
     def connectionLost(self, reason):
         self.logger.debug("connectionLost %s" % reason)
         if self.outgoingConn:
