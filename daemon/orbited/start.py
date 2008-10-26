@@ -67,6 +67,34 @@ def main():
     _setup_protocols(root)
     _setup_static(root, config.map)
     start_listening(site, config.map, logger)
+
+    # switch uid and gid to configured user and group.
+    if os.name == 'posix' and os.getuid() == 0:
+        user = config.map['[global]'].get('user')
+        group = config.map['[global]'].get('group')
+        if user:
+            import pwd
+            import grp
+            try:
+                pw = pwd.getpwnam(user)
+                uid = pw.pw_uid
+                if group:
+                    gr = grp.getgrnam(group)
+                    gid = gr.gr_gid
+                else:
+                    gid = pw.pw_gid
+                    gr = grp.getgrgid(gid)
+                    group = gr.gr_name
+            except Exception, e:
+                logger.error('Aborting; Unknown user or group: %s' % e)
+                sys.exit(-1)
+            logger.info('switching to user %s (uid=%d) and group %s (gid=%d)' % (user, uid, group, gid))
+            os.setgid(gid)
+            os.setuid(uid)
+        else:
+            logger.error('Aborting; You must define a user (and optionally a group) in the configuration file.')
+            sys.exit(-1)
+
     reactor.run()
 
 def start_listening(site, config, logger):
