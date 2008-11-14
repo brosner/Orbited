@@ -39,6 +39,7 @@ Orbited.settings.hostname = document.domain
 Orbited.settings.port = (location.port.length > 0) ? location.port : 80
 Orbited.settings.protocol = 'http'
 Orbited.settings.log = false;
+Orbited.settings.streaming = true;
 Orbited.settings.HEARTBEAT_TIMEOUT = 6000
 Orbited.settings.POLL_INTERVAL = 2000
 Orbited.settings.pageLoggerHeight = '200px'
@@ -348,6 +349,9 @@ Orbited.system = Orbited.getLogger('system')
 Orbited.CometTransports = {}
 
 Orbited.util.chooseTransport = function() {
+    if (Orbited.settings.streaming == false) {
+        return Orbited.CometTransports.LongPoll;
+    }
     var choices = []
     for (var name in Orbited.CometTransports) {
         var transport = Orbited.CometTransports[name];
@@ -772,6 +776,7 @@ Orbited.TCPSocket = function() {
         sessionUrl.domain = Orbited.settings.hostname
         sessionUrl.port = Orbited.settings.port
         sessionUrl.protocol = Orbited.settings.protocol
+        sessionUrl.setQsParameter('nocache', Math.random())
         session.open(sessionUrl.render())
         session.onopen = sessionOnOpen;
         session.onread = sessionOnRead;
@@ -2005,7 +2010,10 @@ Orbited.CometTransports.SSE.opera9_5 = 0.8;
 
 
 /* This is an old implementation of the URL class. Jacob is cleaning it up
- * mcarter, 7-30-08
+ * -mcarter, 7-30-08
+ * 
+ * Jacob is actually throwing this away and rewriting from scratch
+ * -mcarter 11-14-08
  */
 Orbited.URL = function(_url) {
     var self = this;
@@ -2542,10 +2550,15 @@ try {
         var script = scripts[0]
         if (script.src.match('/static/Orbited\.js$')) {
             var url = new Orbited.URL(script.src)
-            Orbited.settings.hostname = url.domain;
-            Orbited.settings.port = url.port;
+            if (url.render().indexOf('http') != 0) {
+                var url = new Orbited.URL(window.location.toString());
+            }
+            Orbited.settings.hostname = url.domain
+            Orbited.settings.port = url.port
             break
         }
     }
-} catch(e) { }
+} catch(e) { 
+//    alert("Error! " + e.name + ": " + e.message);
+}
 })()

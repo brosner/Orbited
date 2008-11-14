@@ -1,7 +1,7 @@
 import os
 import sys
 import urlparse
-
+from orbited import __version__ as version
 from orbited import config
 from orbited import logging
 
@@ -36,9 +36,33 @@ def _setup_static(root, config):
         root.putChild(key, static.File(val))
 
 def main():
+    from optparse import OptionParser
+    parser = OptionParser()
+    # TODO: this should be in start.py, not here.
+    parser.add_option(
+        "--config",
+        dest="config",
+        type="string",
+        default=None,
+        help="path to configuration file"
+    )
+    parser.add_option(
+        "--version",
+        "-v",
+        dest="version",
+        action="store_true",
+        default=None,
+        help="path to configuration file"
+    )
+    
+    (options, args) = parser.parse_args(sys.argv)    
+    
+    if options.version:
+        print "Orbited version: %s" % (version,)
+        sys.exit(0)
     # load configuration from configuration file and from command
     # line arguments.
-    config.setup(sys.argv)
+    config.setup(options=options)
 
     logging.setup(config.map)
 

@@ -1,4 +1,3 @@
-from optparse import OptionParser
 import os
 import os.path
 import sys
@@ -54,29 +53,17 @@ defaultPaths = [
     'orbited.cfg',
 ]
 
-def setup(argv, paths=defaultPaths):
-    parser = OptionParser()
-    parser.add_option(
-        "--config",
-        dest="config",
-        type="string",
-        default=None,
-        help="path to configuration file"
-    )
-    (options, args) = parser.parse_args(argv)
+def setup(paths=defaultPaths, options={}):
 
-    # NB: args[0] is the command name that started orbited.
-    if len(args) != 1:
-        parser.error('unexpected positional command line arguments; aborting.')
 
-    if not options.config:
+    if not hasattr(options, 'config') or not options.config:
         # no config file specified, try to search it.
         for path in paths:
             if os.path.exists(path):
                 options.config = path
                 break
 
-    if not options.config:
+    if not hasattr(options, 'config') or not options.config:
         parser.error('unable to find the configuration file, please specify it in the --config command line argument; aborting.')
 
     _load(open(options.config, 'r'))
