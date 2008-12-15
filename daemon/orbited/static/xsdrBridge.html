@@ -87,6 +87,9 @@ function getNext() {
 //    alert(
 //    debug('GETTING NEXT REQUEST', '...');
 //    alert('getting next request...')
+    if (! parent.Orbited) {
+        return;
+    }
     document.domain = topDomain
     var queue = parent.Orbited.singleton.XSDR.queues[id]
 //    alert('queue: ' + queue.length)
