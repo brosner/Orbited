@@ -17,7 +17,7 @@ static_types = [
 try:
     setup(
         name = 'orbited',
-        version = '0.7.2',
+        version = '0.7.3',
         author = 'Michael Carter',
         author_email = 'CarterMichael@gmail.com',
         url = 'http://www.orbited.org',
@@ -30,7 +30,7 @@ try:
                 static_types ] or [] for (d, s, f) in os.walk(os.path.join('orbited', 'static'))
             ]) },
         zip_safe = False,
-        install_requires = [ "demjson", "morbid" ],
+        install_requires = [ "demjson", "morbid >= 0.8.4" ],
         entry_points = '''
             [console_scripts]
             orbited = orbited.start:main

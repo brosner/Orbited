@@ -811,7 +811,12 @@ Orbited.TCPSocket = function() {
             data = Orbited.utf8.encode(data)
         }
 ;;;     self.logger.debug('SEND: ', data)
-        session.send(data)
+//        try {
+            session.send(data)
+  //      }
+    //    catch(e) {
+      //      alert("Why sending: typeof(data) = " + typeof(data));
+        //}
     }
 
     var process = function() {
@@ -1994,9 +1999,9 @@ Orbited.CometTransports.SSE = function() {
             //       we are going to throw out the duplicates. Its not clear to
             //       me that this is a perfect solution.
             //       -mcarter 8-9-08
-            if (tempId <= lastEventId) {
-                return
-            }
+//            if (tempId <= lastEventId) {
+//                return
+//            }
             lastEventId = tempId;
         }
         // NOTE: we are dispatching null-id packets. Is this correct?
