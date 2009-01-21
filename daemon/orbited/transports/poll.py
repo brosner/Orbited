@@ -10,9 +10,6 @@ class PollingTransport(CometTransport):
     def opened(self):
         self.request.setHeader('cache-control', 'no-cache, must-revalidate')
 
-    def triggerCloseTimeout(self):
-        self.close()
-
     # NOTE: we override this so we can close as soon as we send out any waiting
     #       packets. We can't put the self.close call inside of self.write 
     #       because sometimes there will be no packets to write.

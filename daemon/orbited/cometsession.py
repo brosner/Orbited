@@ -349,21 +349,24 @@ class TCPConnectionResource(resource.Resource):
             self.pingTimer.cancel()
             
         self.logger.debug('close reason=%s %s' % (reason, repr(self)))
-        if self.cometTransport:
-            self.logger.debug('close cometTransport %s' % repr(self.cometTransport))
-            self.cometTransport.sendPacket('close', "", reason)
-            self.cometTransport.flush()
+
+        self.send(TCPClose(reason))
+#        if self.cometTransport:
+#            self.logger.debug('close cometTransport %s' % repr(self.cometTransport))
+#            self.cometTransport.sendPacket('close', "", reason)
+#            self.cometTransport.flush()
             # previous line can cause cometTransport to close
-            if self.cometTransport:
-                self.cometTransport.close()
-                self.cometTransport = None
-        self.connectionLost()
+#            if self.cometTransport:
+#                self.cometTransport.close()
+#                self.cometTransport = None
+#        self.connectionLost()
         # NOTE:
         # else:
         # If we didn't have a comet transport, then we can't send a close frame
         # but its okay, because it should get a 404 on reconnect, and that 
         # will trigger the js side onclose cb.
-        self.root.removeConn(self)
+#        print 'CLOSING', self, self.key
+#        self.root.removeConn(self)
                 
         
     def ack(self, ackId, reset=False):
@@ -374,7 +377,10 @@ class TCPConnectionResource(resource.Resource):
         if ackId <= self.lastAckId:
             return
         for i in range(ackId - self.lastAckId):
-            self.unackQueue.pop(0)
+            (data, packetId) = self.unackQueue.pop(0)
+            if isinstance(data, TCPClose):
+                # Really close
+                self.root.removeConn(self)
         self.lastAckId = ackId
         
     def sendMsgQueue(self):
@@ -396,7 +402,7 @@ class TCPConnectionResource(resource.Resource):
         if isinstance(data, TCPPing):
             self.cometTransport.sendPacket('ping', str(packetId))
         elif isinstance(data, TCPClose):
-            self.cometTransport.sendPacket('close', str(packetId))
+            self.cometTransport.sendPacket('close', str(packetId), data.reason)
         elif isinstance(data, TCPOption):
             self.cometTransport.sendPacket('opt', str(packetId), data.payload)
         else:
@@ -419,7 +425,8 @@ class TCPPing(object):
     pass
 
 class TCPClose(object):
-    pass
+    def __init__(self, reason):
+        self.reason = reason
 
 class TCPOption(object):
     def __init__(self, name, val):
@@ -455,11 +462,12 @@ class TCPResource(resource.Resource):
             if 'htmlfile' in request.path:
                 return transports.htmlfile.CloseResource();
             return error.NoResource("<script>alert('whoops');</script>")
+#        print 'returning self.connections[%s]' % (path,)
         return self.connections[path]
          
     def removeConn(self, conn):
-        if conn in self.connections:
-            del self.connections[conn.id]
+        if conn.key in self.connections:
+            del self.connections[conn.key]
 
     def connectionMade(self, conn):
         self.listeningPort.connectionMade(conn)

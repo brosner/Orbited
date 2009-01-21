@@ -90,7 +90,7 @@ def _load(f):
                     map[section]  = {}
                 continue
             
-            # assign each source in the proxy section to a target address and port
+            # assign each source in the access section to a target address and port
             if section == '[access]':
                 if '->' not in line:
                     raise ValueError, "line %s -- [access] lines must contain an ->" % (i+1)

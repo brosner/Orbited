@@ -157,7 +157,7 @@ Orbited.util.loggingSystem = null;
 if (window.Log4js) {
     Orbited.util.loggingSystem = 'log4js';
 }
-else if (window.console && console.firebug) {
+else if (window.console && console.firebug && console.firebug != "1.3.0") {
     Orbited.util.loggingSystem = 'firebug';
 }
 
@@ -1103,6 +1103,9 @@ Orbited.singleton.XSDRBridgeLogger = Orbited.getLogger('XSDRBridge');
 
 /* Comet Transports!
  */
+var CT_READYSTATE_INITIAL = 0;
+var CT_READYSTATE_OPEN    = 1;
+var CT_READYSTATE_CLOSED  = 2;
 
 Orbited.CometTransports.XHRStream = function() {
     var self = this;
@@ -1115,13 +1118,13 @@ Orbited.CometTransports.XHRStream = function() {
     var retryTimer = null;
     var buffer = ""
     var retryInterval = 50
-    self.readyState = 0
+    self.readyState = CT_READYSTATE_INITIAL;
     self.onReadFrame = function(frame) {}
     self.onread = function(packet) { self.onReadFrame(packet); }
     self.onclose = function() { }
 
     self.close = function() {
-        if (self.readyState == 2) {
+        if (self.readyState == CT_READYSTATE_CLOSED) {
             return
         }
         if (xhr != null && (xhr.readyState > 1 || xhr.readyState < 4)) {
@@ -1129,14 +1132,14 @@ Orbited.CometTransports.XHRStream = function() {
             xhr.abort()
             xhr = null;
         }
-        self.readyState = 2
+        self.readyState = CT_READYSTATE_CLOSED
         window.clearTimeout(heartbeatTimer);
         window.clearTimeout(retryTimer);
         self.onclose();
     }
 
     self.connect = function(_url) {
-        if (self.readyState == 1) {
+        if (self.readyState == CT_READYSTATE_OPEN) {
             throw new Error("Already Connected")
         }
         url = new Orbited.URL(_url)
@@ -1150,7 +1153,7 @@ Orbited.CometTransports.XHRStream = function() {
         }
         url.path += '/xhrstream'
 //        url.setQsParameter('transport', 'xhrstream')
-        self.readyState = 1
+        self.readyState = CT_READYSTATE_OPEN
         open()
     }
     var open = function() {
@@ -1170,7 +1173,7 @@ Orbited.CometTransports.XHRStream = function() {
             xhr.open('GET', url.render(), true)
             xhr.onreadystatechange = function() {
 ;;;             self.logger.debug(xhr.readyState);
-                if (self.readyState == 2) { 
+                if (self.readyState == CT_READYSTATE_CLOSED) { 
                     return
                 }
                 switch(xhr.readyState) {
@@ -1391,12 +1394,12 @@ Orbited.CometTransports.LongPoll = function() {
     var retryTimer = null;
     var buffer = ""
     var retryInterval = 50
-    self.readyState = 0
+    self.readyState = CT_READYSTATE_INITIAL
     self.onReadFrame = function(frame) {}
     self.onclose = function() { }
 
     self.close = function() {
-        if (self.readyState == 2) {
+        if (self.readyState == CT_READYSTATE_CLOSED) {
             return
         }
         if (xhr != null && (xhr.readyState > 1 || xhr.readyState < 4)) {
@@ -1404,13 +1407,14 @@ Orbited.CometTransports.LongPoll = function() {
             xhr.abort()
             xhr = null;
         }
-        self.readyState = 2
+//        console.log('close! self.readyState now is 2');
+        self.readyState = CT_READYSTATE_CLOSED
         window.clearTimeout(retryTimer);
         self.onclose();
     }
 
     self.connect = function(_url) {
-        if (self.readyState == 1) {
+        if (self.readyState == CT_READYSTATE_OPEN) {
             throw new Error("Already Connected")
         }
         url = new Orbited.URL(_url)
@@ -1424,10 +1428,14 @@ Orbited.CometTransports.LongPoll = function() {
         }
         url.path += '/longpoll'
 //        url.setQsParameter('transport', 'xhrstream')
-        self.readyState = 1
+        self.readyState = CT_READYSTATE_OPEN
         open()
     }
     var open = function() {
+//        console.log('open... self.readyState = ' + self.readyState);
+        if (self.readyState == CT_READYSTATE_CLOSED) {
+            return;
+        }
         try {
             if (typeof(ackId) == "number") {
                 url.setQsParameter('ack', ackId)
@@ -1507,6 +1515,7 @@ Orbited.CometTransports.LongPoll = function() {
             setTimeout(open, 0)
         }
     }
+    // ( ab,hello world)
     // 12,ab011,hello world
     var process = function() {
         var commaPos = -1;
@@ -1599,12 +1608,12 @@ Orbited.CometTransports.Poll = function() {
     var buffer = ""
     var baseRetryInterval = Orbited.settings.POLL_INTERVAL
     var retryInterval = baseRetryInterval;
-    self.readyState = 0
+    self.readyState = CT_READYSTATE_INITIAL
     self.onReadFrame = function(frame) {}
     self.onclose = function() { }
 
     self.close = function() {
-        if (self.readyState == 2) {
+        if (self.readyState == CT_READYSTATE_CLOSED) {
             return
         }
         if (xhr != null && (xhr.readyState > 1 || xhr.readyState < 4)) {
@@ -1612,13 +1621,13 @@ Orbited.CometTransports.Poll = function() {
             xhr.abort()
             xhr = null;
         }
-        self.readyState = 2
+        self.readyState = CT_READYSTATE_CLOSED
         window.clearTimeout(retryTimer);
         self.onclose();
     }
 
     self.connect = function(_url) {
-        if (self.readyState == 1) {
+        if (self.readyState == CT_READYSTATE_OPEN) {
             throw new Error("Already Connected")
         }
         url = new Orbited.URL(_url)
@@ -1632,7 +1641,7 @@ Orbited.CometTransports.Poll = function() {
         }
         url.path += '/poll'
 //        url.setQsParameter('transport', 'xhrstream')
-        self.readyState = 1
+        self.readyState = CT_READYSTATE_OPEN
         open()
     }
     var open = function() {
@@ -1808,14 +1817,14 @@ Orbited.CometTransports.HTMLFile = function() {
     self.onread = function(packet) { self.onReadFrame(packet); }
     self.onclose = function() { }
     self.connect = function(_url) {
-        if (self.readyState == 1) {
+        if (self.readyState == CT_READYSTATE_OPEN) {
             throw new Error("Already Connected")
         }
         self.logger.debug('self.connect', _url)
         url = new Orbited.URL(_url)
         url.path += '/htmlfile'
         url.setQsParameter('frameID', id.toString())
-        self.readyState = 1
+        self.readyState = CT_READYSTATE_OPEN
         doOpen(url.render())
     }
 
@@ -1879,12 +1888,12 @@ Orbited.CometTransports.HTMLFile = function() {
     }
     
     self.close = function() {
-        if (self.readyState == 2) {
+        if (self.readyState == CT_READYSTATE_CLOSED) {
             return
         }
 ;;;     self.logger.debug('close called, clearing timer');
         window.clearTimeout(restartTimer);
-        self.readyState = 2
+        self.readyState = CT_READYSTATE_CLOSED
         ifr.src = 'about:blank'
         htmlfile = null;
         CollectGarbage();
@@ -1908,30 +1917,30 @@ Orbited.CometTransports.SSE = function() {
     self.name = 'sse'
     self.onReadFrame = function(frame) {}
     self.onclose = function() { }
-    self.readyState = 0;
+    self.readyState = CT_READYSTATE_INITIAL;
     var heartbeatTimer = null;
     var source = null
     var url = null;
     var lastEventId = -1;
 
     self.close = function() {
-        if (self.readyState == 2) {
+        if (self.readyState == CT_READYSTATE_CLOSED) {
             return;
         }
         // TODO: can someone test this and get back to me? (No opera at the moment)
         //     : -mcarter 7-26-08
-        self.readyState = 2
+        self.readyState = CT_READYSTATE_CLOSED
         doClose();
         self.onclose();
     }
 
     self.connect = function(_url) {
-        if (self.readyState == 1) {
+        if (self.readyState == CT_READYSTATE_OPEN) {
             throw new Error("Already Connected")
         }
         url = new Orbited.URL(_url)
         url.path += '/sse'
-        self.readyState = 1
+        self.readyState = CT_READYSTATE_OPEN
         doOpen();
     }
     doClose = function() {
