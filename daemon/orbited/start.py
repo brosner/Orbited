@@ -89,10 +89,16 @@ def main():
     from twisted.web import resource
     from twisted.web import server
     from twisted.web import static
+    import orbited.system
 
     root = resource.Resource()
     static_files = static.File(os.path.join(os.path.dirname(__file__), 'static'))
     root.putChild('static', static_files)
+    root.putChild('system', orbited.system.SystemResource())
+    
+    if config.map['[test]']['stompdispatcher.enabled'] == '1':
+        logger.info('stompdispatcher enabled')
+    
     #static_files.putChild('orbited.swf', static.File(os.path.join(os.path.dirname(__file__), 'flash', 'orbited.swf')))
     site = server.Site(root)
 
@@ -153,7 +159,9 @@ def start_listening(site, config, logger):
         if url.scheme == 'stomp':
             logger.info('Listening stomp@%s' % url.port)
             from morbid import StompFactory
-            reactor.listenTCP(url.port, StompFactory(), interface=hostname)
+            morbid_instance = StompFactory()
+            config['morbid_instance'] = morbid_instance
+            reactor.listenTCP(url.port, morbid_instance, interface=hostname)
         elif url.scheme == 'http':
             logger.info('Listening http@%s' % url.port)
             reactor.listenTCP(url.port, site, interface=hostname)

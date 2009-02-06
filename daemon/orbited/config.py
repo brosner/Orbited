@@ -28,6 +28,10 @@ map = {
         #'http://:8001',
     ],
 
+    '[test]': {
+        'stompdispatcher.enabled': '0',
+    },
+
     '[ssl]': {
         #'key': 'orbited.key',
         #'crt': 'orbited.crt',

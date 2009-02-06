@@ -57,7 +57,7 @@ Orbited.Errors.Unauthorized = 106
 
 Orbited.Statuses = {}
 Orbited.Statuses.ServerClosedConnection = 201
-
+Orbited.Statuses.SocketControlKilled = 301
 
 Orbited.util = {}
 
@@ -732,9 +732,38 @@ Orbited.CometSession.prototype.READY_STATE_OPEN         = 3;
 Orbited.CometSession.prototype.READY_STATE_CLOSING      = 4;
 Orbited.CometSession.prototype.READY_STATE_CLOSED       = 5;
 
+var currentTCPSocketId = 0;
+var openSockets = {};
+
+Orbited.test = {};
+Orbited.test.logger = Orbited.getLogger("Orbited.test");
+
+Orbited.test.socketcontrol = {};
+Orbited.test.socketcontrol.kill = function(t) {
+;;; Orbited.test.logger.debug("kill ordered for socket:", t);
+    if (openSockets[t.id]) {
+        openSockets[t.id](Orbited.Statuses.SocketControlKilled);
+        t = null;
+;;;     Orbited.test.logger.debug("socket killed");
+    }
+    else {
+;;;     Orbited.test.logger.debug("socket not found");
+    }
+}
+
+Orbited.test.stompdispatcher = {};
+Orbited.test.stompdispatcher.send = function(dest, msg) {
+;;; Orbited.test.logger.debug("stompdispatcher dispatching "+msg+" to "+dest);
+    var s = document.createElement('script');
+    s.src = "http://"+Orbited.settings.hostname+":"+Orbited.settings.port+"/system/test/stomp?";
+    s.src += "msg="+msg;
+    s.src += "&dest="+dest;
+    document.body.appendChild(s);
+}
 
 Orbited.TCPSocket = function() {
     var self = this;
+    self.id = ++currentTCPSocketId;
 
     // So we don't completely ambush people used to the 0.5 api...
     if (arguments.length > 0) {
@@ -891,7 +920,9 @@ Orbited.TCPSocket = function() {
             }, 0)
         }
     }
-    
+
+    openSockets[self.id] = doClose;
+
     var sessionOnOpen = function(data) {
         // TODO: TCPSocket handshake
         var payload = hostname + ':' + port + '\n' 
@@ -910,6 +941,9 @@ Orbited.TCPSocket = function() {
         doClose(code);
     }
 };
+Orbited.TCPSocket.prototype.toString = function() {
+    return "<Orbited.TCPSocket " + this.id + ">";
+}
 Orbited.TCPSocket.prototype.logger = Orbited.getLogger("Orbited.TCPSocket");
 Orbited.TCPSocket.prototype.READY_STATE_INITIALIZED  = 1;
 Orbited.TCPSocket.prototype.READY_STATE_OPENING      = 2;
