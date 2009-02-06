@@ -1,4 +1,4 @@
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 
 class Announce(protocol.Protocol):
     def __init__(self):

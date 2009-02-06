@@ -1,4 +1,4 @@
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 
 class Rude(protocol.Protocol):
     def dataReceived(self, data):

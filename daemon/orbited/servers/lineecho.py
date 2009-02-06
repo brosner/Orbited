@@ -1,4 +1,4 @@
-from twisted.internet import reactor, protocol
+from twisted.internet import protocol
 
 class LineEcho(protocol.Protocol):
     def __init__(self):
