@@ -701,9 +701,9 @@ Orbited.CometSession = function() {
 ;;;     self.logger.debug('doClose', code)
         unsetTimeout();
         self.readyState = self.READY_STATE_CLOSED;
-        cometTransport.onReadFrame = function() {}
         if (cometTransport != null) {
             // TODO: is this line necessary?
+            cometTransport.onReadFrame = function() {}
             cometTransport.onclose = function() { }
             cometTransport.close()
         }
