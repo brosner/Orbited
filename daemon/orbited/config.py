@@ -1,5 +1,4 @@
 import os
-import os.path
 import sys
 
 map = {
@@ -43,6 +42,11 @@ map = {
     }
 }
 
+def config_error(msg):
+    print "failed to load configuration file\n"
+    print msg
+    sys.exit(-1)
+
 def update(**kwargs):
     map.update(kwargs)
     return True
@@ -64,7 +68,7 @@ def setup(paths=defaultPaths, options={}):
                 break
 
     if not hasattr(options, 'config') or not options.config:
-        parser.error('unable to find the configuration file, please specify it in the --config command line argument; aborting.')
+        config_error('configuration file not found - please specify it in the --config command line argument')
 
     _load(open(options.config, 'r'))
 
@@ -93,7 +97,7 @@ def _load(f):
             # assign each source in the access section to a target address and port
             if section == '[access]':
                 if '->' not in line:
-                    raise ValueError, "line %s -- [access] lines must contain an ->" % (i+1)
+                    raise Exception, "line %s -- [access] lines must contain an ->" % (i+1)
                 source, dest = line.split('->')
                 source, dest = source.strip(), dest.strip()
                 if ':' in dest:
@@ -121,6 +125,5 @@ def _load(f):
             
             map[section][key] = value
     except Exception, e:
-        print >>sys.stderr, 'failed to load configuration file: %s; aborting.' % e
-        sys.exit(-1)
+        config_error(e)
     return True
