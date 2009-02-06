@@ -40,19 +40,27 @@ def main():
     parser = OptionParser()
     # TODO: this should be in start.py, not here.
     parser.add_option(
+        "-c",
         "--config",
         dest="config",
-        type="string",
         default=None,
         help="path to configuration file"
     )
     parser.add_option(
-        "--version",
         "-v",
+        "--version",
         dest="version",
         action="store_true",
-        default=None,
-        help="path to configuration file"
+        default=False,
+        help="print Orbited version"
+    )
+    parser.add_option(
+        "-p",
+        "--profile",
+        dest="profile",
+        action="store_true",
+        default=False,
+        help="run Orbited with a profiler"
     )
     
     (options, args) = parser.parse_args(sys.argv)    
@@ -119,12 +127,25 @@ def main():
             logger.error('Aborting; You must define a user (and optionally a group) in the configuration file.')
             sys.exit(-1)
 
-    reactor.run()
+    if options.profile:
+        import hotshot
+        prof = hotshot.Profile("orbited.profile")
+        logger.info("running Orbited in profile mode")
+        logger.info("for information on profiler, see http://docs.python.org/library/hotshot.html")
+        prof.runcall(reactor.run)
+        prof.close()
+    else:
+        reactor.run()
 
 def start_listening(site, config, logger):
     from twisted.internet import reactor
-    # allow stomp:// URIs to be parsed by urlparse 
-    urlparse.uses_netloc.append('stomp')
+    from twisted.internet import protocol as protocol_module
+    # allow stomp:// URIs to be parsed by urlparse
+    urlparse.uses_netloc.append("stomp")
+    # allow test server URIs to be parsed by urlparse
+    from orbited.servers import test_servers
+    for protocol in test_servers:
+        urlparse.uses_netloc.append(protocol)
 
     for addr in config['[listen]']:
         url = urlparse.urlparse(addr)
@@ -132,7 +153,7 @@ def start_listening(site, config, logger):
         if url.scheme == 'stomp':
             logger.info('Listening stomp@%s' % url.port)
             from morbid import StompFactory
-            reactor.listenTCP(url.port, StompFactory(), interface=hostname)     
+            reactor.listenTCP(url.port, StompFactory(), interface=hostname)
         elif url.scheme == 'http':
             logger.info('Listening http@%s' % url.port)
             reactor.listenTCP(url.port, site, interface=hostname)
@@ -149,6 +170,11 @@ def start_listening(site, config, logger):
                 sys.exit(-1)
             logger.info('Listening https@%s (%s, %s)' % (url.port, key, crt))
             reactor.listenSSL(url.port, site, ssl_context, interface=hostname)
+        elif url.scheme in test_servers:
+            test_factory = protocol_module.ServerFactory()
+            test_factory.protocol = test_servers[url.scheme]
+            logger.info("Listening %s@%s"%(url.scheme, url.port))
+            reactor.listenTCP(url.port, test_factory)
         else:
             logger.error("Invalid Listen URI: %s" % addr)
             sys.exit(-1)

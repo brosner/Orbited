@@ -34,7 +34,6 @@ try:
         entry_points = '''
             [console_scripts]
             orbited = orbited.start:main
-            orbitedctl = orbited.control:main
         ''',
         classifiers = [
             'Development Status :: 4 - Beta',
