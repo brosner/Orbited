@@ -137,7 +137,7 @@ def main():
         import hotshot
         prof = hotshot.Profile("orbited.profile")
         logger.info("running Orbited in profile mode")
-        logger.info("for information on profiler, see http://docs.python.org/library/hotshot.html")
+        logger.info("for information on profiler, see http://orbited.org/wiki/Profiler")
         prof.runcall(reactor.run)
         prof.close()
     else:
