@@ -1878,8 +1878,8 @@ Orbited.CometTransports.HTMLFile = function() {
 ;;;     self.logger.debug('doOpen', _url)
         htmlfile = new ActiveXObject('htmlfile'); // magical microsoft object
         htmlfile.open();
-//        htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
-        htmlfile.write('<html></html>');
+        htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
+//        htmlfile.write('<html></html>');
         htmlfile.parentWindow.Orbited = Orbited;
         htmlfile.close();
         var iframe_div = htmlfile.createElement('div');
