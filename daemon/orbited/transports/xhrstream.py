@@ -1,4 +1,4 @@
-from twisted.internet import reactor
+#from twisted.internet import reactor
 from orbited import logging
 from orbited.transports.base import CometTransport
 
@@ -17,13 +17,14 @@ class XHRStreamingTransport(CometTransport):
         self.request.write(' ' * 256)
 
     def triggerCloseTimeout(self):
+        self.logger.debug('triggerCloseTimeout called')
         self.close()
 
     def write(self, packets):
         self.logger.debug('write %r' % packets)
         # TODO why join the packets here?  why not do N request.write?
         payload = self.encode(packets)
-        self.logger.debug('WRITE ' + payload)        
+        self.logger.debug('WRITE ' + payload)
         self.request.write(payload)
         self.totalBytes += len(payload)
         if (self.totalBytes > MAXBYTES):
@@ -39,12 +40,9 @@ class XHRStreamingTransport(CometTransport):
                 else:
                     output.append('1')
                 output.append(str(len(arg)))
-                output.append(',')                
+                output.append(',')
                 output.append(arg)
         return "".join(output)
-
-
-     
 
     def writeHeartbeat(self):
         self.logger.debug('writeHeartbeat, ' + repr(self))

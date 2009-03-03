@@ -67,6 +67,10 @@ class ProxyIncomingProtocol(Protocol):
                 self.transport.loseConnection()
                 return
             self.logger.access('new connection from %s:%s to %s:%d' % (peer.host, peer.port, host, port))
+            self.fromHost = peer.host
+            self.fromPort = peer.port
+            self.toHost = host
+            self.toPort = port
             self.state = 'connecting'
             client = ClientCreator(reactor, ProxyOutgoingProtocol, self)
             client.connectTCP(host, port).addErrback(self.errorConnection) 
@@ -85,6 +89,7 @@ class ProxyIncomingProtocol(Protocol):
         self.logger.debug("connectionLost %s" % reason)
         if self.outgoingConn:
             self.outgoingConn.transport.loseConnection()
+        self.logger.access('connection closed from %s:%s to %s:%s'%(self.fromHost, self.fromPort, self.toHost, self.toPort))
 
     def outgoingConnectionEstablished(self, outgoingConn):
         if self.state == 'closed':

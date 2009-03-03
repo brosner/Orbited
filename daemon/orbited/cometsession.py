@@ -339,8 +339,16 @@ class TCPConnectionResource(resource.Resource):
         self.timeoutTimer = None
         self.close("timeout")
         
+    def hardClose(self):
+        if self.cometTransport:
+            self.cometTransport.close()
+            self.cometTransport = None
+        self.connectionLost()
+        self.root.removeConn(self)
+
     def close(self, reason=""):
         if self.closed:
+            self.logger.debug('close called - already closed')
             return
         self.closed = True
         if self.timeoutTimer:
@@ -351,24 +359,28 @@ class TCPConnectionResource(resource.Resource):
         self.logger.debug('close reason=%s %s' % (reason, repr(self)))
 
         self.send(TCPClose(reason))
-#        if self.cometTransport:
-#            self.logger.debug('close cometTransport %s' % repr(self.cometTransport))
-#            self.cometTransport.sendPacket('close', "", reason)
-#            self.cometTransport.flush()
+
+        self.closeTimer = reactor.callLater(self.pingInterval, self.hardClose)
+        
+        """##############
+        if self.cometTransport:
+            self.logger.debug('close cometTransport %s' % repr(self.cometTransport))
+            self.cometTransport.sendPacket('close', "", reason)
+            self.cometTransport.flush()
             # previous line can cause cometTransport to close
-#            if self.cometTransport:
-#                self.cometTransport.close()
-#                self.cometTransport = None
-#        self.connectionLost()
+            if self.cometTransport:
+                self.cometTransport.close()
+                self.cometTransport = None
+        self.connectionLost()
         # NOTE:
         # else:
         # If we didn't have a comet transport, then we can't send a close frame
         # but its okay, because it should get a 404 on reconnect, and that 
         # will trigger the js side onclose cb.
-#        print 'CLOSING', self, self.key
-#        self.root.removeConn(self)
-                
-        
+        self.logger.debug('CLOSING %s %s'%(self, self.key))
+        self.root.removeConn(self)
+        ################
+"""
     def ack(self, ackId, reset=False):
         self.logger.debug('ack idId=%s reset=%s' % (ackId, reset))
         if reset:
@@ -380,7 +392,9 @@ class TCPConnectionResource(resource.Resource):
             (data, packetId) = self.unackQueue.pop(0)
             if isinstance(data, TCPClose):
                 # Really close
-                self.root.removeConn(self)
+                if self.closeTimer:
+                    self.closetimer.cancel()
+                self.hardClose()
         self.lastAckId = ackId
         
     def sendMsgQueue(self):
