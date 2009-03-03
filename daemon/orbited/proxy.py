@@ -32,7 +32,8 @@ class ProxyIncomingProtocol(Protocol):
         self.state = 'handshake'
         # TODO rename this to outgoingProtocol
         self.outgoingConn = None
-        
+        self.completedHandshake = False
+
     def dataReceived(self, data):
         # NB: this only receives whole frames;  so we will just decode
         #     data as-is.
@@ -50,27 +51,28 @@ class ProxyIncomingProtocol(Protocol):
                 data = data.strip()
                 host, port = data.split(':')
                 port = int(port)
+                self.completedHandshake = True
             except:
                 self.logger.error("failed to connect on handshake", tb=True)
                 self.transport.write("0" + str(ERRORS['InvalidHandshake']))
                 self.transport.loseConnection()
                 return
             peer = self.transport.getPeer()
+            self.fromHost = peer.host
+            self.fromPort = peer.port
+            self.toHost = host
+            self.toPort = port
             allowed = False
             for source in config.map['[access]'].get((host, port), []):
                 if source == self.transport.hostHeader or source == '*':
                     allowed = True
                     break
             if not allowed:
-                self.logger.warn('Unauthorized connect from %r:%d to %r:%d' % (peer.host, peer.port, host, port))
+                self.logger.warn('Unauthorized connect from %r:%d to %r:%d' % (self.fromHost, self.fromPort, self.toHost, self.toPort))
                 self.transport.write("0" + str(ERRORS['Unauthorized']))
                 self.transport.loseConnection()
                 return
-            self.logger.access('new connection from %s:%s to %s:%d' % (peer.host, peer.port, host, port))
-            self.fromHost = peer.host
-            self.fromPort = peer.port
-            self.toHost = host
-            self.toPort = port
+            self.logger.access('new connection from %s:%s to %s:%d' % (self.fromHost, self.fromPort, self.toHost, self.toPort))
             self.state = 'connecting'
             client = ClientCreator(reactor, ProxyOutgoingProtocol, self)
             client.connectTCP(host, port).addErrback(self.errorConnection) 
@@ -89,7 +91,8 @@ class ProxyIncomingProtocol(Protocol):
         self.logger.debug("connectionLost %s" % reason)
         if self.outgoingConn:
             self.outgoingConn.transport.loseConnection()
-        self.logger.access('connection closed from %s:%s to %s:%s'%(self.fromHost, self.fromPort, self.toHost, self.toPort))
+        if self.completedHandshake:
+            self.logger.access('connection closed from %s:%s to %s:%s'%(self.fromHost, self.fromPort, self.toHost, self.toPort))
 
     def outgoingConnectionEstablished(self, outgoingConn):
         if self.state == 'closed':
