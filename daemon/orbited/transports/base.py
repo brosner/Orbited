@@ -48,7 +48,9 @@ class CometTransport(resource.Resource):
             self.heartbeatTimer.cancel()
             self.resetHeartbeat()
 
+    # i don't think this is ever called...
     def finished(self, arg):
+        logger.debug('finished: %s'%(arg,))
         self.request = None
         self.close()
 

@@ -196,9 +196,10 @@ class TCPConnectionResource(resource.Resource):
     def write(self, data):
         self.send(data)
         
+    # this is never used, right?
     def writeSequence(self, data):
         for datum in data:
-            self.write(data)
+            self.write(datum)
 
     def loseConnection(self):
         # TODO: self.close() ?
@@ -225,7 +226,7 @@ class TCPConnectionResource(resource.Resource):
         if ack:
             try:
                 ack = int(ack)
-                self.ack(ack, True)
+                self.ack(ack)#, True)
             except ValueError:
                 pass
         encoding = request.received_headers.get('tcp-encoding', None)
@@ -234,6 +235,7 @@ class TCPConnectionResource(resource.Resource):
         request.finish()
         # TODO why not call parseData here?
         reactor.callLater(0, self.parseData, stream)
+        self.resetPingTimer()
         return server.NOT_DONE_YET
         
     def parseData(self, data):
@@ -311,7 +313,7 @@ class TCPConnectionResource(resource.Resource):
         if ack:
             try:
                 ack = int(ack)
-                self.ack(ack, True)
+                self.ack(ack)#, True)
             except ValueError:
                 pass
         
@@ -321,6 +323,7 @@ class TCPConnectionResource(resource.Resource):
             self.open = True
             self.cometTransport.sendPacket("open", self.packetId)
         self.cometTransport.flush()
+        self.resetPingTimer()
 
     def resetPingTimer(self):
         if self.pingTimer:
@@ -381,10 +384,11 @@ class TCPConnectionResource(resource.Resource):
         self.root.removeConn(self)
         ################
 """
-    def ack(self, ackId, reset=False):
-        self.logger.debug('ack idId=%s reset=%s' % (ackId, reset))
-        if reset:
-            self.resetPingTimer()
+    def ack(self, ackId):#, reset=False):
+        self.logger.debug('ack ackId=%s'%(ackId,))
+#        self.logger.debug('ack idId=%s reset=%s' % (ackId, reset))
+#        if reset:
+#            self.resetPingTimer()
         ackId = min(ackId, self.packetId)
         if ackId <= self.lastAckId:
             return
