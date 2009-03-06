@@ -86,13 +86,13 @@ IRCClient = function() {
     self._createTransport = function() {
         return new TCPSocket();
     };
-    self.close = function() {
-        log.debug("close");
-        conn.close()
+    self.close = function(code) {
+        log.debug("close: "+code);
+        conn.close();
         conn.onopen = null;
         conn.onclose = null;
         conn.onread = null;
-        self.onclose()
+        self.onclose(code);
     }
     self.ident = function(nickname, modes, real_name) {
         send("USER", nickname + " " + modes + " :" + real_name) 
@@ -129,8 +129,8 @@ IRCClient = function() {
     var conn_opened = function() {
         self.onopen()
     }
-    var conn_closed = function() {
-        self.onclose()
+    var conn_closed = function(code) {
+        self.onclose(code)
     }
     var conn_read = function(data) {
         log.debug("data:");

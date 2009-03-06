@@ -328,6 +328,7 @@ class TCPConnectionResource(resource.Resource):
     def resetPingTimer(self):
         if self.pingTimer:
             self.pingTimer.cancel()
+            self.pingTimer = None
         if self.timeoutTimer:
             self.timeoutTimer.cancel()
             self.timeoutTimer = None
@@ -356,8 +357,10 @@ class TCPConnectionResource(resource.Resource):
         self.closed = True
         if self.timeoutTimer:
             self.timeoutTimer.cancel()
+            self.timeoutTimer = None
         if self.pingTimer:
             self.pingTimer.cancel()
+            self.pingTimer = None
             
         self.logger.debug('close reason=%s %s' % (reason, repr(self)))
 
@@ -398,6 +401,7 @@ class TCPConnectionResource(resource.Resource):
                 # Really close
                 if self.closeTimer:
                     self.closetimer.cancel()
+                    self.closetimer = None
                 self.hardClose()
         self.lastAckId = ackId
         
