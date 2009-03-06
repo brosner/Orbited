@@ -358,8 +358,8 @@
         for (var name in Orbited.CometTransports) {
             var transport = Orbited.CometTransports[name];
             if (typeof(transport[Orbited.util.browser]) == "number") {
-            Orbited.system.log('viable transport: ', name);
-            choices.push(transport);
+                Orbited.system.log('viable transport: ', name);
+                choices.push(transport);
             }
         }
         // TODO: sort the choices by the values of transport[Orbited.util.browser]
@@ -405,6 +405,20 @@
         var sending = false;
 
         /*
+     * right now this is not cross-domain!
+     * -mario
+     */
+        var hardClose = function() {
+            // queue is empty at this point
+            sendQueue.push([++packetCount, "close", null]);
+            var tdata = encodePackets(sendQueue);
+            if (sessionUrl.isSameDomain(location.href)) {
+                xhr.open('POST', sessionUrl.render(), false);
+                xhr.send(tdata);
+            }
+        }
+
+        /*
      * self.open can only be used when readyState is INITIALIZED. Immediately
      * following a call to self.open, the readyState will be OPENING until a
      * connection with the server has been negotiated. self.open takes a url
@@ -414,8 +428,8 @@
         self.open = function(_url) {
 ;;;         self.logger.debug('open');
             self.readyState = self.READY_STATE_OPENING;
-            var url = new Orbited.URL(_url);
-            if (url.isSameDomain(location.href)) {
+            sessionUrl = new Orbited.URL(_url);
+            if (sessionUrl.isSameDomain(location.href)) {
                 xhr = createXHR();
             }
             else {
@@ -435,7 +449,6 @@
                         sessionKey = xhr.responseText;
 ;;;                     self.logger.debug('session key is: ', sessionKey);
                         resetTimeout();
-                        sessionUrl = new Orbited.URL(_url);
                         // START new URL way
                         //              sessionUrl.extendPath(sessionKey)
                         // END: new URL way
@@ -537,8 +550,7 @@
                         xhr.abort();
                     }
                     doClose(Orbited.Errors.UserConnectionReset);
-                    // TODO: send close frame
-                    //     -mcarter 7-29-08
+                    hardClose();
                     break;
                 case self.READY_STATE_CLOSING:
                     // TODO: Do nothing here?
@@ -1989,7 +2001,7 @@ Orbited.CometTransports.Poll.ie = 0.5
 
         self.close = function() {
             if (self.readyState == CT_READYSTATE_CLOSED) {
-            return;
+                return;
             }
             // TODO: can someone test this and get back to me? (No opera at the moment)
             //     : -mcarter 7-26-08
@@ -2000,7 +2012,7 @@ Orbited.CometTransports.Poll.ie = 0.5
 
         self.connect = function(_url) {
             if (self.readyState == CT_READYSTATE_OPEN) {
-            throw new Error("Already Connected");
+                throw new Error("Already Connected");
             }
             url = new Orbited.URL(_url);
             url.path += '/sse';
@@ -2011,7 +2023,7 @@ Orbited.CometTransports.Poll.ie = 0.5
             source.removeEventSource(source.getAttribute('src'));
             source.setAttribute('src',"");
             if (opera.version() < 9.5) {
-            document.body.removeChild(source);
+                document.body.removeChild(source);
             }
             source = null;
         };

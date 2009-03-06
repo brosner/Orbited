@@ -166,7 +166,6 @@ class TCPConnectionResource(resource.Resource):
 
     def __init__(self, root, key, peer, host, hostHeader, **options):
         resource.Resource.__init__(self)
-        
         self.root = root
         self.key = key
         self.peer = peer
@@ -182,20 +181,22 @@ class TCPConnectionResource(resource.Resource):
         self.packetId = 0
         self.pingTimer = None
         self.timeoutTimer = None
+        self.closeTimer = None
         self.lostTriggered = False
         self.resetPingTimer()
         self.open = False
         self.closed = False
-        
+        self.closing = False
+
     def getPeer(self):
         return self.peer
-    
+
     def getHost(self):
         return self.host
-    
+
     def write(self, data):
         self.send(data)
-        
+
     # this is never used, right?
     def writeSequence(self, data):
         for datum in data:
@@ -203,7 +204,7 @@ class TCPConnectionResource(resource.Resource):
 
     def loseConnection(self):
         # TODO: self.close() ?
-        self.close('loseConnection')
+        self.close('loseConnection', True)
         return None
 
     def connectionLost(self):
@@ -212,7 +213,7 @@ class TCPConnectionResource(resource.Resource):
             self.logger.debug('do trigger');
             self.lostTriggered = True
             self.parentTransport.connectionLost()
-    
+
     def getChild(self, path, request):
         if path in transports.map:
             return transports.create(path, self)
@@ -226,32 +227,28 @@ class TCPConnectionResource(resource.Resource):
         if ack:
             try:
                 ack = int(ack)
-                self.ack(ack)#, True)
+                self.ack(ack)
             except ValueError:
                 pass
         encoding = request.received_headers.get('tcp-encoding', None)
         # TODO instead of .write/.finish just return OK?
         request.write('OK')
         request.finish()
+        self.resetPingTimer()
         # TODO why not call parseData here?
         reactor.callLater(0, self.parseData, stream)
-        self.resetPingTimer()
         return server.NOT_DONE_YET
-        
+
     def parseData(self, data):
-      
         # TODO: this method is filled with areas that really should be put
         #       inside try/except blocks. We don't want errors caused by
         #       malicious IO.
-      
-      
         self.logger.debug('RECV: ' + data)
         frames = []
         curFrame  = []
         while data:
             self.logger.debug([data, frames, curFrame])
             isLast = data[0] == '0'
-            
             l, data = data[1:].split(',', 1)
             l = int(l)
             arg = data[:l]
@@ -299,9 +296,10 @@ class TCPConnectionResource(resource.Resource):
     def transportClosed(self, transport):
         if transport is self.cometTransport:
             self.cometTransport= None
-    
+
     # Called by transports.CometTransport.render
     def transportOpened(self, transport):
+        self.resetPingTimer()
         if self.cometTransport:
             self.cometTransport.close()
             self.cometTransport = None
@@ -313,85 +311,61 @@ class TCPConnectionResource(resource.Resource):
         if ack:
             try:
                 ack = int(ack)
-                self.ack(ack)#, True)
+                self.ack(ack)
             except ValueError:
                 pass
-        
         self.resendUnackQueue()
         self.sendMsgQueue()
         if not self.open:
             self.open = True
             self.cometTransport.sendPacket("open", self.packetId)
         self.cometTransport.flush()
-        self.resetPingTimer()
 
     def resetPingTimer(self):
-        if self.pingTimer:
-            self.pingTimer.cancel()
-            self.pingTimer = None
-        if self.timeoutTimer:
-            self.timeoutTimer.cancel()
-            self.timeoutTimer = None
+        self.cancelTimers()
         self.pingTimer = reactor.callLater(self.pingInterval, self.sendPing)
-    
+
     def sendPing(self):
         self.pingTimer = None
         self.send(TCPPing())
         self.timeoutTimer = reactor.callLater(self.pingTimeout, self.timeout)
-        
+
     def timeout(self):
         self.timeoutTimer = None
-        self.close("timeout")
-        
-    def hardClose(self):
-        if self.cometTransport:
-            self.cometTransport.close()
-            self.cometTransport = None
-        self.connectionLost()
-        self.root.removeConn(self)
+        self.close("timeout", True)
 
-    def close(self, reason=""):
-        if self.closed:
-            self.logger.debug('close called - already closed')
-            return
-        self.closed = True
+    def cancelTimers(self):
         if self.timeoutTimer:
             self.timeoutTimer.cancel()
             self.timeoutTimer = None
         if self.pingTimer:
             self.pingTimer.cancel()
             self.pingTimer = None
-            
-        self.logger.debug('close reason=%s %s' % (reason, repr(self)))
 
-        self.send(TCPClose(reason))
-
-        self.closeTimer = reactor.callLater(self.pingInterval, self.hardClose)
-        
-        """##############
-        if self.cometTransport:
-            self.logger.debug('close cometTransport %s' % repr(self.cometTransport))
-            self.cometTransport.sendPacket('close', "", reason)
-            self.cometTransport.flush()
-            # previous line can cause cometTransport to close
-            if self.cometTransport:
-                self.cometTransport.close()
-                self.cometTransport = None
+    def hardClose(self):
+        self.closed = True
+        self.cancelTimers()
+        if self.closeTimer:
+            self.closeTimer.cancel()
+            self.closeTimer = None
         self.connectionLost()
-        # NOTE:
-        # else:
-        # If we didn't have a comet transport, then we can't send a close frame
-        # but its okay, because it should get a 404 on reconnect, and that 
-        # will trigger the js side onclose cb.
-        self.logger.debug('CLOSING %s %s'%(self, self.key))
         self.root.removeConn(self)
-        ################
-"""
-    def ack(self, ackId):#, reset=False):
+
+    def close(self, reason="", now=False):
+        if self.closed:
+            self.logger.debug('close called - already closed')
+            return
+        self.closing = True
+        self.logger.debug('close reason=%s %s' % (reason, repr(self)))
+        if now:
+            self.hardClose()
+        elif not self.closing:
+            self.send(TCPClose(reason))
+            self.cancelTimers()
+            self.closeTimer = reactor.callLater(self.pingInterval, self.hardClose)
+
+    def ack(self, ackId):
         self.logger.debug('ack ackId=%s'%(ackId,))
-#        self.logger.debug('ack idId=%s reset=%s' % (ackId, reset))
-#        if reset:
-#            self.resetPingTimer()
         ackId = min(ackId, self.packetId)
         if ackId <= self.lastAckId:
             return
@@ -399,16 +373,13 @@ class TCPConnectionResource(resource.Resource):
             (data, packetId) = self.unackQueue.pop(0)
             if isinstance(data, TCPClose):
                 # Really close
-                if self.closeTimer:
-                    self.closetimer.cancel()
-                    self.closetimer = None
-                self.hardClose()
+                self.close("close acked", True)
         self.lastAckId = ackId
-        
+
     def sendMsgQueue(self):
         while self.msgQueue and self.cometTransport:
             self.send(self.msgQueue.pop(0), flush=False)
-        
+
     def send(self, data, flush=True):
         if not self.cometTransport:
             self.msgQueue.append(data)
@@ -418,7 +389,7 @@ class TCPConnectionResource(resource.Resource):
             self.unackQueue.append((data, self.packetId))
             if flush:
                 self.cometTransport.flush()
-                
+
     def _send(self, data, packetId=""):
         self.logger.debug('_send data=%r packetId=%s' % (data, packetId))
         if isinstance(data, TCPPing):
@@ -429,7 +400,7 @@ class TCPConnectionResource(resource.Resource):
             self.cometTransport.sendPacket('opt', str(packetId), data.payload)
         else:
             self.cometTransport.sendPacket('data', str(packetId), base64.b64encode(data))
-    
+
     def resendUnackQueue(self):
         if not self.unackQueue:
             return
@@ -437,12 +408,7 @@ class TCPConnectionResource(resource.Resource):
             self._send(data, packetId)
         ackId = self.lastAckId + len(self.unackQueue)
 #        self.cometTransport.sendPacket('id', ackId)
-        
 
-    
-
-        
-        
 class TCPPing(object):
     pass
 
