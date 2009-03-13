@@ -66,6 +66,8 @@
     Orbited.util.browser = null;
     if (typeof(ActiveXObject) != "undefined") {
         Orbited.util.browser = 'ie';
+    } else if (navigator.userAgent.indexOf('Chrome') != -1) {
+        Orbited.util.browser = 'chrome';
     } else if (navigator.product == 'Gecko' && window.find && !navigator.savePreferences) {
         Orbited.util.browser = 'firefox';
     } else if((typeof window.addEventStream) === 'function') {
@@ -351,7 +353,7 @@
     Orbited.CometTransports = {};
 
     Orbited.util.chooseTransport = function() {
-        if (Orbited.settings.streaming == false) {
+        if (Orbited.settings.streaming == false || Orbited.util.browser == "chrome") {
             return Orbited.CometTransports.LongPoll;
         }
         var choices = [];
@@ -403,18 +405,20 @@
         var timeoutTimer = null;
         var lastPacketId = 0;
         var sending = false;
+        var xsdClose = null;
 
         /*
-     * right now this is not cross-domain!
+     * this works cross-port and cross-subdomain
      * -mario
      */
         var hardClose = function() {
-            // queue is empty at this point
-            sendQueue.push([++packetCount, "close", null]);
-            var tdata = encodePackets(sendQueue);
+            var tdata = encodePackets([[++packetCount, "close", null]]);
             if (sessionUrl.isSameDomain(location.href)) {
                 xhr.open('POST', sessionUrl.render(), false);
                 xhr.send(tdata);
+            }
+            else {
+                xsdClose.contentWindow.sendCloseFrame(sessionUrl.render(),tdata);
             }
         }
 
@@ -434,8 +438,23 @@
             }
             else {
                 xhr = new Orbited.XSDR();
+                xsdClose = document.createElement('iframe');
+                xsdClose.style.display = 'block';
+                xsdClose.style.width = '0';
+                xsdClose.style.height = '0';
+                xsdClose.style.border = '0';
+                xsdClose.style.margin = '0';
+                xsdClose.style.padding = '0';
+                xsdClose.style.overflow = 'hidden';
+                xsdClose.style.visibility = 'hidden';
+                var ifUrl = new Orbited.URL("");
+                ifUrl.protocol = Orbited.settings.protocol;
+                ifUrl.domain = Orbited.settings.hostname;
+                ifUrl.port = Orbited.settings.port;
+                ifUrl.path = '/static/xsdClose.html';
+                xsdClose.src = ifUrl.render();
+                document.body.appendChild(xsdClose);
             }
-            //      xhr = createXHR();
             if (Orbited.settings.enableFFPrivileges) {
                 try {
                     netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead');

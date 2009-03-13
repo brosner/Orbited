@@ -75,7 +75,7 @@ if (!isOpera) {
         }
     }
 if (topDomain == null)
-    throw new Error("Invalid document.domain for cross-frame communication")
+    throw new Error("Cross-Subdomain Error. See: http://orbited.org/wiki/Deployment#Cross-SubdomainDeployment")
 }
 push(['initialized'])
 try {
