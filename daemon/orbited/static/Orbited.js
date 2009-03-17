@@ -66,8 +66,8 @@
     Orbited.util.browser = null;
     if (typeof(ActiveXObject) != "undefined") {
         Orbited.util.browser = 'ie';
-    } else if (navigator.userAgent.indexOf('Chrome') != -1) {
-        Orbited.util.browser = 'chrome';
+    } else if (navigator.userAgent.indexOf('WebKit') != -1) {
+        Orbited.util.browser = 'webkit';
     } else if (navigator.product == 'Gecko' && window.find && !navigator.savePreferences) {
         Orbited.util.browser = 'firefox';
     } else if((typeof window.addEventStream) === 'function') {
@@ -353,7 +353,7 @@
     Orbited.CometTransports = {};
 
     Orbited.util.chooseTransport = function() {
-        if (Orbited.settings.streaming == false || Orbited.util.browser == "chrome") {
+        if (Orbited.settings.streaming == false || Orbited.util.browser == "webkit") {
             return Orbited.CometTransports.LongPoll;
         }
         var choices = [];
@@ -2192,7 +2192,13 @@ Orbited.CometTransports.Poll.ie = 0.5
             }
             return false;
         };
-
+        self.isSubDomain = function(_url) {
+            _url = new Orbited.URL(_url);
+            if (!_url.domain || !self.domain) {
+                return false;
+            }
+            return (_url.port == self.port && _url.domain == self.domain.split('.').slice(1).join('.'));
+        };
         var decodeQs = function(qs) {
             //      alert('a')
             if (qs.indexOf('=') == -1) return {};
