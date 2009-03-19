@@ -66,7 +66,7 @@
     Orbited.util.browser = null;
     if (typeof(ActiveXObject) != "undefined") {
         Orbited.util.browser = 'ie';
-    } else if (navigator.userAgent.indexOf('WebKit') != -1) {
+    } else if (navigator.userAgent.indexOf('WebKit') != -1 || navigator.userAgent.indexOf('Konqueror') != -1) {
         Orbited.util.browser = 'webkit';
     } else if (navigator.product == 'Gecko' && window.find && !navigator.savePreferences) {
         Orbited.util.browser = 'firefox';
@@ -408,17 +408,19 @@
         var xsdClose = null;
 
         /*
-     * this works cross-port and cross-subdomain
+     * This will always fire same-domain and cross-subdomain.
+     * It will fire most of the time cross-port, but it's not
+     * strictly guaranteed.
      * -mario
      */
         var hardClose = function() {
-            var tdata = encodePackets([[++packetCount, "close", null]]);
-            if (sessionUrl.isSameDomain(location.href)) {
-                xhr.open('POST', sessionUrl.render(), false);
-                xhr.send(tdata);
+            var tdata = encodePackets([[++packetCount, "close"]]);
+            if (xsdClose) {
+                xsdClose.contentWindow.sendCloseFrame(sessionUrl.render(),tdata);
             }
             else {
-                xsdClose.contentWindow.sendCloseFrame(sessionUrl.render(),tdata);
+                xhr.open('POST', sessionUrl.render(), !sessionUrl.isSameDomain(location.href));
+                xhr.send(tdata);
             }
         }
 
@@ -438,22 +440,24 @@
             }
             else {
                 xhr = new Orbited.XSDR();
-                xsdClose = document.createElement('iframe');
-                xsdClose.style.display = 'block';
-                xsdClose.style.width = '0';
-                xsdClose.style.height = '0';
-                xsdClose.style.border = '0';
-                xsdClose.style.margin = '0';
-                xsdClose.style.padding = '0';
-                xsdClose.style.overflow = 'hidden';
-                xsdClose.style.visibility = 'hidden';
-                var ifUrl = new Orbited.URL("");
-                ifUrl.protocol = Orbited.settings.protocol;
-                ifUrl.domain = Orbited.settings.hostname;
-                ifUrl.port = Orbited.settings.port;
-                ifUrl.path = '/static/xsdClose.html';
-                xsdClose.src = ifUrl.render();
-                document.body.appendChild(xsdClose);
+                if (sessionUrl.isSamePort(location.href)) {
+                    xsdClose = document.createElement('iframe');
+                    xsdClose.style.display = 'block';
+                    xsdClose.style.width = '0';
+                    xsdClose.style.height = '0';
+                    xsdClose.style.border = '0';
+                    xsdClose.style.margin = '0';
+                    xsdClose.style.padding = '0';
+                    xsdClose.style.overflow = 'hidden';
+                    xsdClose.style.visibility = 'hidden';
+                    var ifUrl = new Orbited.URL("");
+                    ifUrl.protocol = Orbited.settings.protocol;
+                    ifUrl.domain = Orbited.settings.hostname;
+                    ifUrl.port = Orbited.settings.port;
+                    ifUrl.path = '/static/xsdClose.html';
+                    xsdClose.src = ifUrl.render();
+                    document.body.appendChild(xsdClose);
+                }
             }
             if (Orbited.settings.enableFFPrivileges) {
                 try {
@@ -538,7 +542,7 @@
             }
             self.readyState = self.READY_STATE_CLOSING;
             // TODO: don't have a third element (remove the null).
-            sendQueue.push([++packetCount, "close", null]);
+            sendQueue.push([++packetCount, "close"]);
             if (!sending) {
                 doSend();
             }
@@ -2170,6 +2174,10 @@ Orbited.CometTransports.Poll.ie = 0.5
             output += "#" + self.hash;
             return output;
         };
+        self.isSamePort = function(_url) {
+            _url = new Orbited.URL(_url);
+            return _url.port == self.port;
+        }
         self.isSameDomain = function(_url) {
             _url = new Orbited.URL(_url);
             
