@@ -123,6 +123,7 @@ class ProxyOutgoingProtocol(Protocol):
 
     def connectionMade(self):
         self.incomingConn.outgoingConnectionEstablished(self)
+        config.map['globalVars']['connections'] += 1
 
     def dataReceived(self, data):
         self.logger.debug("dataReceived %r" % data)
@@ -130,6 +131,7 @@ class ProxyOutgoingProtocol(Protocol):
 
     def connectionLost(self, reason):
         self.incomingConn.outgoingConnectionLost(self, reason)
+        config.map['globalVars']['connections'] -= 1
 
 class ProxyFactory(Factory):
 

@@ -3,8 +3,6 @@ import sys
 
 map = {
     '[global]': {
-        #'reactor': 'epoll',
-
         'proxy.enabled': '1',
         'pid.location': '/tmp/orbited.pid',
         'session.ping_interval': '30',
@@ -43,6 +41,11 @@ map = {
 
     '[static]': {
         #'tmp': '/tmp',
+    },
+
+    'globalVars': {
+        'monitoring': False,
+        'connections': 0
     }
 }
 
@@ -56,9 +59,9 @@ def update(**kwargs):
     return True
 
 defaultPaths = [
+    'orbited.cfg',
     os.path.join('/', 'etc', 'orbited.cfg'),
     os.path.join('/', 'Program Files', 'Orbited', 'etc', 'orbited.cfg'),
-    'orbited.cfg',
 ]
 
 def setup(paths=defaultPaths, options={}):

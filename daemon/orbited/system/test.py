@@ -6,6 +6,7 @@ class TestResource(resource.Resource):
     def render(self, request):
         response = "<h2>Orbited.system.test</h2>"
         response += "stompdispatcher.enabled = "+config['[test]']['stompdispatcher.enabled']
+        response += "<br><br>&lt; <a href='/system'>Orbited.system</a>"
         return response
 
     def getChild(self, path, request):

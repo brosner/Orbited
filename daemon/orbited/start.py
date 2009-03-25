@@ -183,6 +183,8 @@ def start_listening(site, config, logger):
             test_factory.protocol = test_servers[url.scheme]
             logger.info("Listening %s@%s"%(url.scheme, url.port))
             reactor.listenTCP(url.port, test_factory)
+            if url.scheme == 'monitor':
+                config['globalVars']['monitoring'] = url.port
         else:
             logger.error("Invalid Listen URI: %s" % addr)
             sys.exit(-1)
