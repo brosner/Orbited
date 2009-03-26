@@ -56,6 +56,7 @@
     Orbited.Errors.InvalidHandshake = 102;
     Orbited.Errors.UserConnectionReset = 103;
     Orbited.Errors.Unauthorized = 106;
+    Orbited.Errors.RemoteConnectionFailed = 108;
     
     Orbited.Statuses = {};
     Orbited.Statuses.ServerClosedConnection = 201;
@@ -541,7 +542,6 @@
                     break;
             }
             self.readyState = self.READY_STATE_CLOSING;
-            // TODO: don't have a third element (remove the null).
             sendQueue.push([++packetCount, "close"]);
             if (!sending) {
                 doSend();
@@ -563,7 +563,7 @@
                 case self.READY_STATE_OPENING:
                     xhr.onreadystatechange = function() {};
                     xhr.abort();
-                    self.onclose();
+                    self.onclose(Orbited.Errors.UserConnectionReset);
                     break;
                 case self.READY_STATE_OPEN:
                     self.sendQueue = [];
@@ -588,6 +588,11 @@
                     break;
             }
         };
+        
+        self.cleanup = function() {
+            self.readyState = self.READY_STATE_CLOSED;
+            cometTransport.close();
+        }
         
         var transportOnReadFrame = function(frame) {
 ;;;         self.logger.debug('transportOnReadFrame');
@@ -784,20 +789,20 @@
 
     Orbited.test.socketcontrol = {};
     Orbited.test.socketcontrol.kill = function(t) {
-        //;;; Orbited.test.logger.debug("kill ordered for socket:", t);
+;;;     Orbited.test.logger.debug("kill ordered for socket:", t);
         if (openSockets[t.id]) {
             openSockets[t.id](Orbited.Statuses.SocketControlKilled);
             t = null;
-            //;;;    Orbited.test.logger.debug("socket killed");
+;;;         Orbited.test.logger.debug("socket killed");
         }
         else {
-            //;;;    Orbited.test.logger.debug("socket not found");
+;;;         Orbited.test.logger.debug("socket not found");
         }
     };
 
     Orbited.test.stompdispatcher = {};
     Orbited.test.stompdispatcher.send = function(dest, msg) {
-        //;;; Orbited.test.logger.debug("stompdispatcher dispatching "+msg+" to "+dest);
+;;;     Orbited.test.logger.debug("stompdispatcher dispatching "+msg+" to "+dest);
         var s = document.createElement('script');
         s.src = "http://"+Orbited.settings.hostname+":"+Orbited.settings.port+"/system/test/stomp?";
         s.src += "msg="+msg;
@@ -832,12 +837,12 @@
      */
         self.open = function(_hostname, _port, isBinary) {
             if (self.readyState != self.READY_STATE_INITIALIZED) {
-            // TODO: allow reuse from readyState == self.READY_STATE_CLOSED?
-            //         Re-use makes sense for xhr due to memory concerns, but
-            //         probably not for tcp sockets. How often do you reconnect
-            //         in the same page?
-            //         -mcarter 7-30-08
-            throw new Error("Invalid readyState");
+                // TODO: allow reuse from readyState == self.READY_STATE_CLOSED?
+                //         Re-use makes sense for xhr due to memory concerns, but
+                //         probably not for tcp sockets. How often do you reconnect
+                //         in the same page?
+                //         -mcarter 7-30-08
+                throw new Error("Invalid readyState");
             }
             // handle isBinary undefined/null case
             binary = !!isBinary;
@@ -859,7 +864,7 @@
 
         self.close = function() {
             if (self.readyState == self.READY_STATE_CLOSED) {
-            return;
+                return;
             }
             self.readyState = self.READY_STATE_CLOSED;
             doClose();
@@ -877,12 +882,12 @@
 
         self.send = function(data) {
             if (self.readyState != self.READY_STATE_OPEN) {
-            throw new Error("Invalid readyState");
+                throw new Error("Invalid readyState");
             }
             if (!binary) {
-            data = Orbited.utf8.encode(data);
+                data = Orbited.utf8.encode(data);
             }
-            //;;;    self.logger.debug('SEND: ', data);
+;;;         self.logger.debug('SEND: ', data);
             //      try {
             session.send(data);
             //      }
@@ -897,69 +902,74 @@
             var i = result[1];
             buffer = buffer.slice(i);
             if (data.length > 0) {
-            window.setTimeout(function() { self.onread(data); }, 0);
+                window.setTimeout(function() { self.onread(data); }, 0);
             }
         };
 
         var sessionOnRead = function(data) {
             switch(self.readyState) {
-            case self.READY_STATE_OPEN:
-            //;;;        self.logger.debug('READ: ', data);
-            if (binary) {
-                window.setTimeout(function() { self.onread(data); }, 0);
-            }
-            else {
-                //;;;            self.logger.debug('start buffer size:', buffer.length);
-                buffer += data;
-                process();
-                //;;;            self.logger.debug('end buffer size:', buffer.length);
-            }
-            break;
-            case self.READY_STATE_OPENING:
-            switch(handshakeState) {
-            case 'initial':
-                // NOTE: we should only get complete payloads during
-                //     the handshake. no need to buffer, then parse
-                data = Orbited.utf8.decode(data)[0];
-                //;;;            self.logger.debug('initial');
-                //;;;            self.logger.debug('data', data);
-                //;;;            self.logger.debug('len', data.length);
-                //;;;            self.logger.debug('typeof(data)', typeof(data));
-                //;;;            self.logger.debug('data[0] ', data.slice(0,1));
-                //;;;            self.logger.debug('type ', typeof(data.slice(0,1)));
-                var result = (data.slice(0,1) == '1');
-                //;;;            self.logger.debug('result', result);
-                if (!result) {
-                //;;;                self.logger.debug('!result');
-                var errorCode = data.slice(1,4);
-                doClose(parseInt(errorCode));
-                }
-                if (result) {
-                self.readyState = self.READY_STATE_OPEN;
-                //;;;                self.logger.debug('tcpsocket.onopen..');
-                self.onopen();
-                //;;;                self.logger.debug('did onopen');
-                }
-                break;
-            }
-            break;
+                case self.READY_STATE_OPEN:
+;;;                 self.logger.debug('READ: ', data);
+                    if (binary) {
+                        window.setTimeout(function() { self.onread(data); }, 0);
+                    }
+                    else {
+;;;                     self.logger.debug('start buffer size:', buffer.length);
+                        buffer += data;
+                        process();
+;;;                     self.logger.debug('end buffer size:', buffer.length);
+                    }
+                    break;
+                case self.READY_STATE_OPENING:
+                    switch(handshakeState) {
+                        case 'initial':
+                            // NOTE: we should only get complete payloads during
+                            //     the handshake. no need to buffer, then parse
+                            data = Orbited.utf8.decode(data)[0];
+;;;                         self.logger.debug('initial');
+;;;                         self.logger.debug('data', data);
+;;;                         self.logger.debug('len', data.length);
+;;;                         self.logger.debug('typeof(data)', typeof(data));
+;;;                         self.logger.debug('data[0] ', data.slice(0,1));
+;;;                         self.logger.debug('type ', typeof(data.slice(0,1)));
+                            var result = (data.slice(0,1) == '1');
+;;;                         self.logger.debug('result', result);
+                            if (!result) {
+;;;                             self.logger.debug('!result');
+                                var errorCode = data.slice(1,4);
+                                doClose(parseInt(errorCode));
+                            }
+                            if (result) {
+                                self.readyState = self.READY_STATE_OPEN;
+;;;                             self.logger.debug('tcpsocket.onopen..');
+                                self.onopen();
+;;;                             self.logger.debug('did onopen');
+                            }
+                            break;
+                    }
+                    break;
             }
         };
         var doClose = function(code) {
-            //;;;    self.logger.debug('doClose', code);
+;;;         self.logger.debug('doClose', code);
             if (session) {
-            sessionOnClose = function() {};
-            session.close();
-            session = null;
+                if (code == Orbited.Statuses.ServerClosedConnection || code == Orbited.Errors.Unauthorized || code == Orbited.Errors.RemoteConnectionFailed) {
+                    session.cleanup();
+                }
+                else {
+                    sessionOnClose = function() {};
+                    session.close();
+                }
+                session = null;
             }
-            //;;;    self.logger.debug('onCloseTriggered', onCloseTriggered);
+;;;         self.logger.debug('onCloseTriggered', onCloseTriggered);
             if (!onCloseTriggered) {
-            //;;;        self.logger.debug('triggerClose timer', code);
-            onCloseTriggered = true;
-            window.setTimeout(function() {
-                //;;;        self.logger.debug('onclose!', code);
-                self.onclose(code);
-            }, 0);
+;;;             self.logger.debug('triggerClose timer', code);
+                onCloseTriggered = true;
+                window.setTimeout(function() {
+;;;                 self.logger.debug('onclose!', code);
+                    self.onclose(code);
+                }, 0);
             }
         };
 
@@ -968,16 +978,16 @@
         var sessionOnOpen = function(data) {
             // TODO: TCPSocket handshake
             var payload = hostname + ':' + port + '\n';
-            //;;;    self.logger.debug('sessionOpen; sending:', payload);
+;;;         self.logger.debug('sessionOpen; sending:', payload);
             payload = Orbited.utf8.encode(payload);
-            //;;;    self.logger.debug('encoded payload:', payload);
+;;;         self.logger.debug('encoded payload:', payload);
             X = payload;
             session.send(payload);
             handshakeState = 'initial';
         };
 
         var sessionOnClose = function(code) {
-            //;;;    self.logger.debug('sessionOnClose');
+;;;         self.logger.debug('sessionOnClose');
             // If we are in the OPENING state, then the handshake code should
             // handle the close
             doClose(code);
@@ -1008,7 +1018,7 @@
             var id = ++Orbited.singleton.XSDR.id;
             Orbited.singleton.XSDR.receiveCbs[id] = receive;
             Orbited.singleton.XSDR.queues[id] = queue;
-            //;;;    Orbited.system.debug('id is', id);
+;;;         Orbited.system.debug('id is', id);
             return id;
         }
     };
@@ -1027,9 +1037,9 @@
         bridgeUrl.path = '/static/xsdrBridge.html';
         bridgeUrl.hash = id.toString();
         bridgeUrl.protocol = Orbited.settings.protocol;
-        //;;; self.logger.debug('bridgeUrl.hash is', bridgeUrl.hash);
-        //;;; self.logger.debug('bridgeUrl.path is', bridgeUrl.path);
-        //;;; self.logger.debug('bridgeUrl is', bridgeUrl.render());
+;;;     self.logger.debug('bridgeUrl.hash is', bridgeUrl.hash);
+;;;     self.logger.debug('bridgeUrl.path is', bridgeUrl.path);
+;;;     self.logger.debug('bridgeUrl is', bridgeUrl.render());
         var reset = function() {
             self.responseText = "";
             self.status = null;
@@ -1052,7 +1062,7 @@
             if (!async) {
             throw new Error("Only Async XSDR supported");
             }
-            //;;;    self.logger.debug('open', _method, _url, async);
+;;;         self.logger.debug('open', _method, _url, async);
             self.readyState = 1;
             url = _url;
             method = _method;
@@ -1062,13 +1072,13 @@
             if (self.readyState != 1) {
             throw new Error("Invalid readyState");
             }
-            //;;;    self.logger.debug('send', data);
+;;;         self.logger.debug('send', data);
             if (!ifr) {
-            //;;;        self.logger.debug('creating iframe');
+;;;         self.logger.debug('creating iframe');
             ifr = document.createElement("iframe");
             hideIframe(ifr);
             ifr.src = bridgeUrl.render();
-            //;;;        self.logger.debug('set ifr.src to', ifr.src);
+;;;         self.logger.debug('set ifr.src to', ifr.src);
             document.body.appendChild(ifr);
             }
             else {
@@ -1080,7 +1090,7 @@
             if (self.readyState > 0 && self.readyState < 4) {
             // TODO: push an ABORT command (so as not to reload the iframe)
             //          queue.push(['ABORT']);
-            //;;;        self.logger.debug('ABORT called');
+;;;         self.logger.debug('ABORT called');
             ifr.src = "about:blank";
             document.body.removeChild(ifr);
             ifr = null;
@@ -1112,28 +1122,28 @@
         };
         
         var receive = function(payload) {
-          //;;;    self.logger.debug('received', payload);
+;;;         self.logger.debug('received', payload);
             switch(payload[0]) {
             case 'initialized':
             queue.push([method, url, data, requestHeaders]);
-            //;;;        self.logger.debug('queue is', queue);
-            //;;;        self.logger.debug('Orbited.singleton.XSDR.queues[id] is', Orbited.singleton.XSDR.queues[id]);
+;;;         self.logger.debug('queue is', queue);
+;;;         self.logger.debug('Orbited.singleton.XSDR.queues[id] is', Orbited.singleton.XSDR.queues[id]);
             break;
             case 'readystatechange':
             data = payload[1];
             self.readyState = data.readyState;
-            //;;;        self.logger.debug('readystatechange', self.readyState);
+;;;         self.logger.debug('readystatechange', self.readyState);
             if (data.status) {
                 self.status = data.status;
-                //;;;            self.logger.debug('status', data.status);
+;;;             self.logger.debug('status', data.status);
             }
             if (data.responseText) {
                 self.responseText += data.responseText;
-                //;;;            self.logger.debug('responseText', data.responseText);
+;;;             self.logger.debug('responseText', data.responseText);
             }
-            //;;;        self.logger.debug('doing trigger');
+;;;         self.logger.debug('doing trigger');
             self.onreadystatechange();
-            //;;;        self.logger.debug('trigger complete');
+;;;         self.logger.debug('trigger complete');
             break;
             }
         };
@@ -1204,12 +1214,12 @@
 
         self.close = function() {
             if (self.readyState == CT_READYSTATE_CLOSED) {
-            return;
+                return;
             }
             if (xhr != null && (xhr.readyState > 1 || xhr.readyState < 4)) {
-            xhr.onreadystatechange = function() { };
-            xhr.abort();
-            xhr = null;
+                xhr.onreadystatechange = function() { };
+                xhr.abort();
+                xhr = null;
             }
             self.readyState = CT_READYSTATE_CLOSED;
             window.clearTimeout(heartbeatTimer);
@@ -1219,16 +1229,16 @@
 
         self.connect = function(_url) {
             if (self.readyState == CT_READYSTATE_OPEN) {
-            throw new Error("Already Connected");
+                throw new Error("Already Connected");
             }
             url = new Orbited.URL(_url);
             if (xhr == null) {
-            if (url.isSameDomain(location.href)) {
-                xhr = createXHR();
-            }
-            else {
-                xhr = new Orbited.XSDR();
-            }
+                if (url.isSameDomain(location.href)) {
+                    xhr = createXHR();
+                }
+                else {
+                    xhr = new Orbited.XSDR();
+                }
             }
             url.path += '/xhrstream';
             //      url.setQsParameter('transport', 'xhrstream')
@@ -1237,132 +1247,133 @@
         };
         var open = function() {
             try {
-            if (typeof(ackId) == "number") {
-                url.setQsParameter('ack', ackId);
-            }
-            if (typeof(xhr)== "undefined" || xhr == null) {
-                throw new Error("how did this happen?");
-            }
-            if (Orbited.settings.enableFFPrivileges) {
-                try {
-                netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead');
-                } catch (ex) { }
-            }
-
-            xhr.open('GET', url.render(), true);
-            xhr.onreadystatechange = function() {
-                //;;;        self.logger.debug(xhr.readyState);
-                if (self.readyState == CT_READYSTATE_CLOSED) {
-                return;
+                if (typeof(ackId) == "number") {
+                    url.setQsParameter('ack', ackId);
                 }
-                switch(xhr.readyState) {
-                case 2:
-                // If we can't get the status, then we didn't actually
-                // get a valid xhr response -- we got a network error
-                try {
-                    var status = xhr.status;
+                if (typeof(xhr)== "undefined" || xhr == null) {
+                    throw new Error("how did this happen?");
                 }
-                catch(e) {
-                    return;
-                }
-                // If we got a 200, then we're in business
-                if (status == 200) {
+                if (Orbited.settings.enableFFPrivileges) {
                     try {
-                    heartbeatTimer = window.setTimeout(heartbeatTimeout, Orbited.settings.HEARTBEAT_TIMEOUT);
+                        netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead');
                     }
-                    catch(e) {
-                    //                 Happens after navigation
-                    self.close();
-                    return;
+                    catch (ex) { }
+                }
+
+                xhr.open('GET', url.render(), true);
+                xhr.onreadystatechange = function() {
+;;;                 self.logger.debug(xhr.readyState);
+                    if (self.readyState == CT_READYSTATE_CLOSED) {
+                        return;
                     }
-                    var testtimer = heartbeatTimer;
-                }
-                // Otherwise, case 4 should handle the reconnect,
-                // so do nothing here.
-                break;
-                case 3:
-                // If we can't get the status, then we didn't actually
-                // get a valid xhr response -- we got a network error
-                try {
-                    var status = xhr.status;
-                }
-                catch(e) {
-                    return;
-                }
-                // We successfully established a connection, so put the
-                // retryInterval back to a short value
-                if (status == 200) {
-                    retryInterval = 50;
-                    process();
-                }
-                break;
-                case 4:
-                var doReconnect = true;
-                try {
-                    if (xhr.status === null) {
-                    doReconnect = true;
+                    switch(xhr.readyState) {
+                        case 2:
+                            // If we can't get the status, then we didn't actually
+                            // get a valid xhr response -- we got a network error
+                            try {
+                                var status = xhr.status;
+                            }
+                            catch(e) {
+                                return;
+                            }
+                            // If we got a 200, then we're in business
+                            if (status == 200) {
+                                try {
+                                    heartbeatTimer = window.setTimeout(heartbeatTimeout, Orbited.settings.HEARTBEAT_TIMEOUT);
+                                }
+                                catch(e) {
+                                //                 Happens after navigation
+                                    self.close();
+                                    return;
+                                }
+                                var testtimer = heartbeatTimer;
+                            }
+                            // Otherwise, case 4 should handle the reconnect,
+                            // so do nothing here.
+                            break;
+                        case 3:
+                            // If we can't get the status, then we didn't actually
+                            // get a valid xhr response -- we got a network error
+                            try {
+                                var status = xhr.status;
+                            }
+                            catch(e) {
+                                return;
+                            }
+                            // We successfully established a connection, so put the
+                            // retryInterval back to a short value
+                            if (status == 200) {
+                                retryInterval = 50;
+                                process();
+                            }
+                            break;
+                        case 4:
+                            var doReconnect = true;
+                            try {
+                                if (xhr.status === null) {
+                                    doReconnect = true;
+                                }
+                                else {
+                                    doReconnect = false;
+                                }
+                            }
+                            catch(e) {
+                            }
+                            if (doReconnect) {
+                                // Expoential backoff: Every time we fail to
+                                // reconnect, double the interval.
+                                // TODO cap the max value.
+                                retryInterval *= 2;
+                                //                  self.logger.debug('retryInterval', retryInterval)
+                                window.clearTimeout(heartbeatTimer);
+                                retryTimer = window.setTimeout(reconnect, retryInterval);
+                                return;
+                            }
+                            switch(xhr.status) {
+                                case 200:
+                                    //                  alert('finished, call process');
+                                    //                 if (typeof(Orbited) == "undefined") {
+                                    //                      alert('must have reloaded')
+                                    //                      break
+                                    //                  }
+                                    //                  alert('a');
+                                    //                  alert('stream over ' +  typeof(console) + ' ' + typeof(Orbited) + ' ' + Orbited + ' ...');
+                                    process();
+                                    offset = 0;
+                                    setTimeout(open, 0);
+                                    window.clearTimeout(heartbeatTimer);
+                                    break;
+                                case 404:
+                                    self.close();
+                                    break;
+                                default:
+                                    self.close();
+                                    break;
+                            }
+                            break;
                     }
-                    else {
-                    doReconnect = false;
-                    }
-                }
-                catch(e) {
-                }
-                if (doReconnect) {
-                    // Expoential backoff: Every time we fail to
-                    // reconnect, double the interval.
-                    // TODO cap the max value.
-                    retryInterval *= 2;
-                    //                  self.logger.debug('retryInterval', retryInterval)
-                    window.clearTimeout(heartbeatTimer);
-                    retryTimer = window.setTimeout(reconnect, retryInterval);
-                    return;
-                }
-                switch(xhr.status) {
-                case 200:
-                    //                  alert('finished, call process');
-                    //                 if (typeof(Orbited) == "undefined") {
-                    //                      alert('must have reloaded')
-                    //                      break
-                    //                  }
-                    //                  alert('a');
-                    //                  alert('stream over ' +  typeof(console) + ' ' + typeof(Orbited) + ' ' + Orbited + ' ...');
-                    process();
-                    offset = 0;
-                    setTimeout(open, 0);
-                    window.clearTimeout(heartbeatTimer);
-                    break;
-                case 404:
-                    self.close();
-                    break;
-                default:
-                    self.close();
-                    break;
-                }
-                break;
-                }
-            };
-            xhr.send(null);
+                };
+                xhr.send(null);
             }
             catch(e) {
-            self.close();
+                self.close();
             }
         };
 
         var reconnect = function() {
-            //      self.logger.debug('reconnect...')
+;;;         self.logger.debug('reconnect...')
             if (xhr.readyState < 4 && xhr.readyState > 0) {
             xhr.onreadystatechange = function() {
                 if (xhr.readyState == 4) {
                 reconnect();
                 }
             };
-            //          self.logger.debug('do abort..')
+;;;         self.logger.debug('do abort..')
             xhr.abort();
             window.clearTimeout(heartbeatTimer);
             }
             else {
-            //;;;        self.logger.debug('reconnect do open');
+;;;         self.logger.debug('reconnect do open');
             offset = 0;
             setTimeout(open, 0);
             }
@@ -1420,10 +1431,10 @@
         };
         var receivedHeartbeat = function() {
             window.clearTimeout(heartbeatTimer);
-            //;;;    self.logger.debug('clearing heartbeatTimer', heartbeatTimer);
+;;;         self.logger.debug('clearing heartbeatTimer', heartbeatTimer);
             try {
             heartbeatTimer = window.setTimeout(function() {
-                //;;;        self.logger.debug('timer', testtimer, 'did it');
+;;;             self.logger.debug('timer', testtimer, 'did it');
                 heartbeatTimeout();
             }, Orbited.settings.HEARTBEAT_TIMEOUT);
             }
@@ -1432,10 +1443,10 @@
             }
             var testtimer = heartbeatTimer;
 
-            //;;;    self.logger.debug('heartbeatTimer is now', heartbeatTimer);
+;;;         self.logger.debug('heartbeatTimer is now', heartbeatTimer);
         };
         var heartbeatTimeout = function() {
-            //;;;    self.logger.debug('heartbeat timeout... reconnect');
+;;;         self.logger.debug('heartbeat timeout... reconnect');
             reconnect();
         };
         var receivedPacket = function(args) {
@@ -1872,11 +1883,11 @@ Orbited.CometTransports.LongPoll.ie = 0.9
         var receivedPacket = function(args) {
 ;;;         self.logger.debug('receivedPacket...');
             var testAckId = parseInt(args[0]);
-            //;;;    self.logger.debug('args', args);
+;;;         self.logger.debug('args', args);
             if (!isNaN(testAckId)) {
             ackId = testAckId;
             }
-            //;;;    self.logger.debug('testAckId', testAckId, 'ackId', ackId);
+;;;         self.logger.debug('testAckId', testAckId, 'ackId', ackId);
             var packet = {
             id: testAckId,
             name: args[1],
@@ -1935,7 +1946,7 @@ Orbited.CometTransports.Poll.ie = 0.5
         };
 
         var doOpen = function(_url) {
-            //;;;    self.logger.debug('doOpen', _url);
+;;;         self.logger.debug('doOpen', _url);
             htmlfile = new ActiveXObject('htmlfile'); // magical microsoft object
             htmlfile.open();
             htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
@@ -1958,21 +1969,21 @@ Orbited.CometTransports.Poll.ie = 0.5
         };
 
         var reconnect = function() {
-            //;;;    self.logger.debug('doing reconnect... ' + restartTimeout);
+;;;         self.logger.debug('doing reconnect... ' + restartTimeout);
             restartTimeout*=2;
             ifr.src = restartUrl;
           restartTimer = window.setTimeout(reconnect, restartTimeout);
         };
 
         self.streamStarted = function() {
-            //;;;    self.logger.debug('stream started..');
+;;;         self.logger.debug('stream started..');
             window.clearTimeout(restartTimer);
             restartTimer = null;
             restartTimeout = baseRestartTimeout;
         };
 
         self.streamClosed = function() {
-            //;;;    self.logger.debug('stream closed!');
+;;;         self.logger.debug('stream closed!');
             window.clearTimeout(restartTimer);
             self.close();
         };
@@ -1990,7 +2001,7 @@ Orbited.CometTransports.Poll.ie = 0.5
             if (self.readyState == CT_READYSTATE_CLOSED) {
             return;
             }
-            //;;;    self.logger.debug('close called, clearing timer');
+;;;         self.logger.debug('close called, clearing timer');
             window.clearTimeout(restartTimer);
             self.readyState = CT_READYSTATE_CLOSED;
             ifr.src = 'about:blank';

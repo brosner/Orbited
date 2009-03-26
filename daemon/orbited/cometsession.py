@@ -357,10 +357,10 @@ class TCPConnectionResource(resource.Resource):
             return
         self.closing = True
         self.logger.debug('close reason=%s %s' % (reason, repr(self)))
+        self.send(TCPClose(reason))
         if now:
             self.hardClose()
         elif not self.closing:
-            self.send(TCPClose(reason))
             self.cancelTimers()
             self.closeTimer = reactor.callLater(self.pingInterval, self.hardClose)
 
