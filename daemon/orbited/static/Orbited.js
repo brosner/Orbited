@@ -2674,7 +2674,7 @@ replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
             try {
             var scripts = document.getElementsByTagName('script');
             for (var i = 0; i < scripts.length; ++i) {
-                var script = scripts[0];
+                var script = scripts[i];
                 if (script.src.match('/static/Orbited\.js$')) {
                 var url = new Orbited.URL(script.src);
                 if (url.render().indexOf('http') != 0) {
