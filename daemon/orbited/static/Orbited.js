@@ -456,6 +456,7 @@
                     ifUrl.domain = Orbited.settings.hostname;
                     ifUrl.port = Orbited.settings.port;
                     ifUrl.path = '/static/xsdClose.html';
+                    ifUrl.hash = document.domain;
                     xsdClose.src = ifUrl.render();
                     document.body.appendChild(xsdClose);
                 }

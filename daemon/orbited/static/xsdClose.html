@@ -1,7 +1,7 @@
 <html><head><script>
 var origDomain = document.domain;
 try {
-    document.domain = document.domain.split('.').slice(1).join('.');
+    document.domain = location.hash.slice(1);
 }
 catch (e) {
     throw new Error("Cross-Subdomain Error. See: http://orbited.org/wiki/Deployment#Cross-SubdomainDeployment");
