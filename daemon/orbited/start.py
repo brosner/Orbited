@@ -154,12 +154,16 @@ def start_listening(site, config, logger):
         urlparse.uses_netloc.append(protocol)
 
     for addr in config['[listen]']:
+        if addr.startswith("stomp"):
+            stompConfig = ""
+            if " " in addr:
+                addr, stompConfig = addr.split(" ",1)
         url = urlparse.urlparse(addr)
         hostname = url.hostname or ''
         if url.scheme == 'stomp':
             logger.info('Listening stomp@%s' % url.port)
-            from morbid import StompFactory
-            morbid_instance = StompFactory()
+            from morbid import get_stomp_factory
+            morbid_instance = get_stomp_factory(stompConfig)
             config['morbid_instance'] = morbid_instance
             reactor.listenTCP(url.port, morbid_instance, interface=hostname)
         elif url.scheme == 'http':
