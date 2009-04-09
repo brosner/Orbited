@@ -348,6 +348,9 @@ class TCPConnectionResource(resource.Resource):
         if self.closeTimer:
             self.closeTimer.cancel()
             self.closeTimer = None
+        if self.cometTransport:
+            self.cometTransport.close()
+            self.cometTransport = None
         self.connectionLost()
         self.root.removeConn(self)
 

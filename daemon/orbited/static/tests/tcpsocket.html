@@ -2,9 +2,22 @@
 <html>
     <head>
         <title>TCPSocket unit tests</title>
+        <link rel='stylesheet' href='tests.css'>
+        <script>document.domain=document.domain;</script>
         <script type="text/javascript" src="/static/tests/lib/doh/doh.js" djConfig="isDebug:true"></script>
         <script src="/static/Orbited.js"></script>
         <script type="text/javascript">
+            if (document.domain == "xp.orbited") {
+                Orbited.settings.port = 5000;
+                document.title += ": X-Port";
+            }
+            else if (Orbited.settings.hostname == "www.orbited") {
+                Orbited.settings.hostname = "sub.www.orbited";
+                document.title += ": X-Subdomain";
+            }
+            else {
+                document.title += ": Same Domain";
+            }
             testlog = Orbited.getLogger('tests')
             testlog.enabled = true;
 
@@ -57,7 +70,7 @@
                         endDeferred.errback(error);
                     };
 
-                    socket.open("localhost", 7, binary);
+                    socket.open("localhost", 8001, binary);
 
                     return endDeferred;
                 }
@@ -150,35 +163,17 @@
         </script>
     </head>
     <body>
-        <h1>NOTE</h1>
-        <p>
-            You need to enable the echo protocol in your system before
-            openning this page AND edit orbited.cfg to enable
-            connections to "localhost:7".
-        </p>
-        <p>For example, in debian/ubuntu you can do it like this:</p>
-        <ol>
-            <li>
-                Install an inetd daemon, eg:
-<pre>
-    sudo apt-get install openbsd-inetd
-</pre>
-            </li>
-            <li>
-                Enable the echo protocol (should listen at TCP port 7)
-                by adding the following line:
-<pre>
-    sudo vim /etc/inetd.conf
-echo   stream  tcp     nowait  root    internal
-</pre>
-            </li>
-            <li>
-                Finally, restart inetd:
-<pre>
-    sudo invoke-rc.d openbsd-inetd restart
-</pre>
-            </li>
-        </ol>
-        <p>NB: if you're running Firefox with Firebug, look at its console.</p>
+        <div class="block">
+            <a href="index.html">back to Tests Main</a>
+            <div class="blockTopic">
+                TCPSocket Automated Tests
+            </div>
+            <div class="blockBody">
+                When testing, always use orbited-debug.cfg.
+            </div>
+            <div class="blockBody">
+                NB: if you're running Firefox with Firebug, look at its console.
+            </div>
+        </div>
     </body>
 </html>

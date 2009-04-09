@@ -487,6 +487,7 @@
                         var transportClass = Orbited.util.chooseTransport();
                         cometTransport = new transportClass();
                         cometTransport.timeoutResetter = resetTimeout;
+                        cometTransport.isSameDomain = sessionUrl.isSameDomain(location.href);
                         cometTransport.onReadFrame = transportOnReadFrame;
                         cometTransport.onclose = transportOnClose;
                         cometTransport.connect(sessionUrl.render());
@@ -845,6 +846,12 @@
                 //         -mcarter 7-30-08
                 throw new Error("Invalid readyState");
             }
+            if (_hostname == false) {
+                throw new Error("No hostname specified");
+            }
+            if (isNaN(_port)) {
+                throw new Error("Invalid port specified");
+            }
             // handle isBinary undefined/null case
             binary = !!isBinary;
             self.readyState = self.READY_STATE_OPENING;
@@ -868,7 +875,7 @@
                 return;
             }
             self.readyState = self.READY_STATE_CLOSED;
-            doClose();
+            doClose(Orbited.Errors.UserConnectionReset);
         };
 
         /* self.reset closes the connection from this end immediately. The server
@@ -1950,8 +1957,12 @@ Orbited.CometTransports.Poll.ie = 0.5
 ;;;         self.logger.debug('doOpen', _url);
             htmlfile = new ActiveXObject('htmlfile'); // magical microsoft object
             htmlfile.open();
-            htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
-            //htmlfile.write('<html></html>');
+            if (self.isSameDomain) {
+                htmlfile.write('<html></html>');
+            }
+            else {
+                htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
+            }
             htmlfile.parentWindow.Orbited = Orbited;
             htmlfile.close();
             var iframe_div = htmlfile.createElement('div');
