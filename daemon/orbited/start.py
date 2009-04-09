@@ -38,7 +38,6 @@ def _setup_static(root, config):
 def main():
     from optparse import OptionParser
     parser = OptionParser()
-    # TODO: this should be in start.py, not here.
     parser.add_option(
         "-c",
         "--config",
@@ -62,15 +61,30 @@ def main():
         default=False,
         help="run Orbited with a profiler"
     )
-    
-    (options, args) = parser.parse_args(sys.argv)    
-    
+    parser.add_option(
+        "-q",
+        "--quickstart",
+        dest="quickstart",
+        action="store_true",
+        default=False,
+        help="run Orbited on port 8000 and MorbidQ on port 61613"
+    )
+
+    (options, args) = parser.parse_args()
+
     if options.version:
         print "Orbited version: %s" % (version,)
         sys.exit(0)
-    # load configuration from configuration file and from command
-    # line arguments.
-    config.setup(options=options)
+
+    if options.quickstart:
+        config.map['[listen]'].append('http://:8000')
+        config.map['[listen]'].append('stomp://:61613')
+        config.map['[access]'][('localhost',61613)] = ['*']
+        print "Quickstarting Orbited"
+    else:
+        # load configuration from configuration
+        # file and from command line arguments.
+        config.setup(options=options)
 
     logging.setup(config.map)
 

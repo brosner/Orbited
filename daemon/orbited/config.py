@@ -4,7 +4,6 @@ import sys
 map = {
     '[global]': {
         'proxy.enabled': '1',
-        'pid.location': '/tmp/orbited.pid',
         'session.ping_interval': '30',
         'session.ping_timeout': '30'
     },
