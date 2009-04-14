@@ -18,6 +18,11 @@
             else {
                 document.title += ": Same Domain";
             }
+            if (location.hash != "") {
+                Orbited.util.chooseTransport = function() {
+                    return Orbited.CometTransports[location.hash.slice(1)];
+                }
+            }
             testlog = Orbited.getLogger('tests')
             testlog.enabled = true;
 
