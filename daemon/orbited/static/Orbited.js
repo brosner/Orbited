@@ -39,7 +39,7 @@
     Orbited.settings = {};
     Orbited.settings.hostname = document.domain;
     Orbited.settings.port = (location.port.length > 0) ? location.port : 80;
-    Orbited.settings.protocol = 'http';
+    Orbited.settings.protocol = location.protocol.slice(0, -1);
     Orbited.settings.log = false;
     Orbited.settings.streaming = true;
     Orbited.settings.HEARTBEAT_TIMEOUT = 6000;
