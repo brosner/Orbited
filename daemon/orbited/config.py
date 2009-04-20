@@ -51,7 +51,7 @@ map = {
 def config_error(msg):
     print "failed to load configuration file\n"
     print msg
-    sys.exit(-1)
+    sys.exit(1)
 
 def update(**kwargs):
     map.update(kwargs)
@@ -103,9 +103,11 @@ def _load(f):
             # assign each source in the access section to a target address and port
             if section == '[access]':
                 if '->' not in line:
-                    raise Exception, "line %s -- [access] lines must contain an ->" % (i+1)
+                    raise Exception, 'line %s: "%s"\n[access] lines must contain an "->"'% ((i+1), line)
                 source, dest = line.split('->')
                 source, dest = source.strip(), dest.strip()
+                if dest == "*":
+                    raise Exception, 'line %s: "%s"\nillegal [access] entry: wildcard destination' % ((i+1), line)
                 if ':' in dest:
                     daddr, dport = dest.split(':', 1)
                     dport = int(dport)

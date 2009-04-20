@@ -24,7 +24,7 @@ def _setup_protocols(root):
             factory_class = _import(factory_class_import)
             reactor.listenWith(port_class, factory=factory_class(), resource=root, childName=child_path)
             logger.info('%s protocol active' % config_key)
-    
+
 def _setup_static(root, config):
     from twisted.web import static
     for key, val in config['[static]'].items():
@@ -32,7 +32,7 @@ def _setup_static(root, config):
             key = ''
         if root.getStaticEntity(key):
             logger.error("cannot mount static directory with reserved name %s" % key)
-            sys.exit(-1)
+            sys.exit(1)
         root.putChild(key, static.File(val))
 
 def main():
@@ -71,6 +71,10 @@ def main():
     )
 
     (options, args) = parser.parse_args()
+
+    if args:
+        print 'the "orbited" command does not accept positional arguments. type "orbited -h" for options.'
+        sys.exit(1)
 
     if options.version:
         print "Orbited version: %s" % (version,)
@@ -139,13 +143,13 @@ def main():
                     group = gr.gr_name
             except Exception, e:
                 logger.error('Aborting; Unknown user or group: %s' % e)
-                sys.exit(-1)
+                sys.exit(1)
             logger.info('switching to user %s (uid=%d) and group %s (gid=%d)' % (user, uid, group, gid))
             os.setgid(gid)
             os.setuid(uid)
         else:
             logger.error('Aborting; You must define a user (and optionally a group) in the configuration file.')
-            sys.exit(-1)
+            sys.exit(1)
 
     if options.profile:
         import hotshot
@@ -193,7 +197,7 @@ def start_listening(site, config, logger):
                 raise
             except:
                 logger.error("Error opening key or crt file: %s, %s" % (key, crt))
-                sys.exit(-1)
+                sys.exit(1)
             logger.info('Listening https@%s (%s, %s)' % (url.port, key, crt))
             reactor.listenSSL(url.port, site, ssl_context, interface=hostname)
         elif url.scheme in test_servers:
@@ -205,7 +209,7 @@ def start_listening(site, config, logger):
                 config['globalVars']['monitoring'] = url.port
         else:
             logger.error("Invalid Listen URI: %s" % addr)
-            sys.exit(-1)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
