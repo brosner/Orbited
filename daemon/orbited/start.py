@@ -1,3 +1,12 @@
+############
+# This crude garbage is to correct a bug in twisted
+#   Orbited ticket: http://orbited.org/ticket/111
+#   Twisted ticket: http://twistedmatrix.com/trac/ticket/2447
+import twisted.web.http
+twisted.web.http.HTTPChannel.setTimeout = lambda self, arg: None
+twisted.web.http.HTTPChannel.resetTimeout = lambda self: None
+############
+
 import os
 import sys
 import urlparse
