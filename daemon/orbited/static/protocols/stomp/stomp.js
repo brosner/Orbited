@@ -405,8 +405,7 @@ STOMPClient = function() {
                 self.onerrorframe(frame);
                 break;
             default:
-                // TODO throw or call onerror with a proper error
-                throw("Unknown STOMP frame type " + frame.type);
+                self.onerror("Unknown STOMP frame type " + frame.type);
         }
     };
 
