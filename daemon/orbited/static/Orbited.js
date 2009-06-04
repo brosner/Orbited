@@ -2290,35 +2290,35 @@ Orbited.CometTransports.Poll.ie = 0.5
         }
         for (var i=0; i < s.length; i++) {
             if ((s.charCodeAt(i) & 0xf8) == 0xf0) {
-            if (s.length -j < 4) { break; }
-            j+=4;
-            ret.push(String.fromCharCode(parseInt(
-                (s.charCodeAt(i) & 0x07).toString(2) +
-                pad6((s.charCodeAt(i+1) & 0x3f).toString(2)) +
-                pad6((s.charCodeAt(i+2) & 0x3f).toString(2)) +
-                pad6((s.charCodeAt(i+3) & 0x3f).toString(2))
-                , 2)));
-            i += 3;
+                if (s.length -j < 4) { break; }
+                j+=4;
+                ret.push(String.fromCharCode(parseInt(
+                    (s.charCodeAt(i) & 0x07).toString(2) +
+                    pad6((s.charCodeAt(i+1) & 0x3f).toString(2)) +
+                    pad6((s.charCodeAt(i+2) & 0x3f).toString(2)) +
+                    pad6((s.charCodeAt(i+3) & 0x3f).toString(2))
+                    , 2)));
+                i += 3;
             } else if ((s.charCodeAt(i) & 0xf0) == 0xe0) {
-            if (s.length -j < 3) { break; }
-            j+=3;
-            ret.push(String.fromCharCode(parseInt(
-                (s.charCodeAt(i) & 0x0f).toString(2) +
-                pad6((s.charCodeAt(i+1) & 0x3f).toString(2)) +
-                pad6((s.charCodeAt(i+2) & 0x3f).toString(2))
-                , 2)));
-            i += 2;
+                if (s.length -j < 3) { break; }
+                j+=3;
+                ret.push(String.fromCharCode(parseInt(
+                    (s.charCodeAt(i) & 0x0f).toString(2) +
+                    pad6((s.charCodeAt(i+1) & 0x3f).toString(2)) +
+                    pad6((s.charCodeAt(i+2) & 0x3f).toString(2))
+                    , 2)));
+                i += 2;
             } else if ((s.charCodeAt(i) & 0xe0) == 0xc0) {
-            j+=2;
-            if (s.length -j < 2) { break }
-            ret.push(String.fromCharCode(parseInt(
-                (s.charCodeAt(i) & 0x1f).toString(2) +
-                pad6((s.charCodeAt(i+1) & 0x3f).toString(2), 6)
-                , 2)));
-            i += 1;
+                if (s.length -j < 2) { break }
+                j+=2;
+                ret.push(String.fromCharCode(parseInt(
+                    (s.charCodeAt(i) & 0x1f).toString(2) +
+                    pad6((s.charCodeAt(i+1) & 0x3f).toString(2), 6)
+                    , 2)));
+                i += 1;
             } else {
-            j+=1;
-            ret.push(String.fromCharCode(s.charCodeAt(i)));
+                j+=1;
+                ret.push(String.fromCharCode(s.charCodeAt(i)));
             }
         }
         return [ret.join(""), j];
