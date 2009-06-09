@@ -185,7 +185,7 @@ var createXHR = function() {
 
 if (isOpera) {
     // Message receiver handler (req. for Opera compatibility)
-    document.addEventListener('message', function(e) {
+    (window.postMessage && window || document).addEventListener('message', function(e) {
         var msg = e.data;
         var response = JSON.parse(msg);
         req = response;

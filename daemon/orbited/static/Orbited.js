@@ -1021,6 +1021,7 @@
     Orbited.singleton.XSDR = {
         receiveCbs: {},
         queues: {},
+        iframes: {},
         id: 0,
         register: function(receive, queue) {
             var id = ++Orbited.singleton.XSDR.id;
@@ -1056,19 +1057,18 @@
             method = null;
             data = null;
             requestHeaders = {};
-            
         };
         reset();
         self.onreadystatechange = function() { };
         self.open = function(_method, _url, async) {
             if (self.readyState == 4) {
-            reset();
+                reset();
             }
             if (self.readyState != 0) {
-            throw new Error("Invalid readyState");
+                throw new Error("Invalid readyState");
             }
             if (!async) {
-            throw new Error("Only Async XSDR supported");
+                throw new Error("Only Async XSDR supported");
             }
 ;;;         self.logger.debug('open', _method, _url, async);
             self.readyState = 1;
@@ -1078,35 +1078,35 @@
 
         self.send = function(data) {
             if (self.readyState != 1) {
-            throw new Error("Invalid readyState");
+                throw new Error("Invalid readyState");
             }
 ;;;         self.logger.debug('send', data);
             if (!ifr) {
-;;;         self.logger.debug('creating iframe');
-            ifr = document.createElement("iframe");
-            hideIframe(ifr);
-            ifr.src = bridgeUrl.render();
-;;;         self.logger.debug('set ifr.src to', ifr.src);
-            document.body.appendChild(ifr);
+;;;             self.logger.debug('creating iframe');
+                ifr = document.createElement("iframe");
+                hideIframe(ifr);
+                ifr.src = bridgeUrl.render();
+;;;             self.logger.debug('set ifr.src to', ifr.src);
+                document.body.appendChild(ifr);
+                Orbited.singleton.XSDR.iframes[id] = ifr;
             }
             else {
-            queue.push([method, url, data, requestHeaders]);
+                queue.push([method, url, data, requestHeaders]);
             }
         };
 
         self.abort = function() {
             if (self.readyState > 0 && self.readyState < 4) {
-            // TODO: push an ABORT command (so as not to reload the iframe)
-            //          queue.push(['ABORT']);
-;;;         self.logger.debug('ABORT called');
-            ifr.src = "about:blank";
-            document.body.removeChild(ifr);
-            ifr = null;
-            self.readyState = 4;
-            self.onreadystatechange();
+                // TODO: push an ABORT command (so as not to reload the iframe)
+                //          queue.push(['ABORT']);
+;;;             self.logger.debug('ABORT called');
+                ifr.src = "about:blank";
+                document.body.removeChild(ifr);
+                ifr = null;
+                self.readyState = 4;
+                self.onreadystatechange();
             }
         };
-        
 
 
         //    self.abort = function() {
@@ -1117,42 +1117,42 @@
 
         self.setRequestHeader = function(key, val) {
             if (self.readyState != 0) {
-            throw new Error("Invalid readyState");
+                throw new Error("Invalid readyState");
             }
             requestHeaders[key] = val;
         };
 
         self.getResponseHeader = function() {
             if (self.readyState < 2) {
-            throw new Error("Invalid readyState");
+                throw new Error("Invalid readyState");
             }
             return responseHeaders[key];
         };
-        
+
         var receive = function(payload) {
 ;;;         self.logger.debug('received', payload);
             switch(payload[0]) {
-            case 'initialized':
-            queue.push([method, url, data, requestHeaders]);
-;;;         self.logger.debug('queue is', queue);
-;;;         self.logger.debug('Orbited.singleton.XSDR.queues[id] is', Orbited.singleton.XSDR.queues[id]);
-            break;
-            case 'readystatechange':
-            data = payload[1];
-            self.readyState = data.readyState;
-;;;         self.logger.debug('readystatechange', self.readyState);
-            if (data.status) {
-                self.status = data.status;
-;;;             self.logger.debug('status', data.status);
-            }
-            if (data.responseText) {
-                self.responseText += data.responseText;
-;;;             self.logger.debug('responseText', data.responseText);
-            }
-;;;         self.logger.debug('doing trigger');
-            self.onreadystatechange();
-;;;         self.logger.debug('trigger complete');
-            break;
+                case 'initialized':
+                    queue.push([method, url, data, requestHeaders]);
+;;;                 self.logger.debug('queue is', queue);
+;;;                 self.logger.debug('Orbited.singleton.XSDR.queues[id] is', Orbited.singleton.XSDR.queues[id]);
+                    break;
+                case 'readystatechange':
+                    data = payload[1];
+                    self.readyState = data.readyState;
+;;;                 self.logger.debug('readystatechange', self.readyState);
+                    if (data.status) {
+                        self.status = data.status;
+;;;                     self.logger.debug('status', data.status);
+                    }
+                    if (data.responseText) {
+                        self.responseText += data.responseText;
+;;;                     self.logger.debug('responseText', data.responseText);
+                    }
+;;;                 self.logger.debug('doing trigger');
+                    self.onreadystatechange();
+;;;                 self.logger.debug('trigger complete');
+                    break;
             }
         };
 
@@ -1169,30 +1169,26 @@
 
     };
 
-    if (Orbited.util.browser == "opera")
-    {
-        document.addEventListener('message', function(e) {
+    if (Orbited.util.browser == "opera") {
+        var pmLocation = window.postMessage && "contentWindow" || "document";
+        (window.postMessage && window || document).addEventListener('message', function(e) {
             var msg = e.data.split(" ");
             var cmd = msg.shift();
-            if (cmd == "event")
-            {
-            var id = msg.shift();
-            var dataString = msg.join(" ");
-            var data = Orbited.JSON.parse(dataString);
-            
-            Orbited.singleton.XSDR.receiveCbs[id](data);
+            if (cmd == "event") {
+                var id = msg.shift();
+                var dataString = msg.join(" ");
+                var data = Orbited.JSON.parse(dataString);
+                Orbited.singleton.XSDR.receiveCbs[id](data);
             }
-            if (cmd == "queues")
-            {
-            id = msg.shift();
-            var queue = Orbited.singleton.XSDR.queues[id];
-            if (queue.length > 0) {
-                data = queue.shift();
-                e.source.postMessage(Orbited.JSON.stringify(data), e.origin);
+            if (cmd == "queues") {
+                id = msg.shift();
+                var queue = Orbited.singleton.XSDR.queues[id];
+                if (queue.length > 0) {
+                    data = queue.shift();
+                    Orbited.singleton.XSDR.iframes[id][pmLocation].postMessage(Orbited.JSON.stringify(data), e.origin);
+                }
             }
-            }
-        }, false
-                     );
+        }, false);
     }
 
     Orbited.XSDR.prototype.logger = Orbited.getLogger("Orbited.XSDR");
