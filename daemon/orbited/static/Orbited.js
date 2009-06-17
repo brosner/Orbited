@@ -487,7 +487,7 @@
                         var transportClass = Orbited.util.chooseTransport();
                         cometTransport = new transportClass();
                         cometTransport.timeoutResetter = resetTimeout;
-                        cometTransport.isSameDomain = sessionUrl.isSameDomain(location.href);
+                        cometTransport.isSubDomain = sessionUrl.isSubDomain(location.href);
                         cometTransport.onReadFrame = transportOnReadFrame;
                         cometTransport.onclose = transportOnClose;
                         cometTransport.connect(sessionUrl.render());
@@ -1953,11 +1953,11 @@ Orbited.CometTransports.Poll.ie = 0.5
 ;;;         self.logger.debug('doOpen', _url);
             htmlfile = new ActiveXObject('htmlfile'); // magical microsoft object
             htmlfile.open();
-            if (self.isSameDomain) {
-                htmlfile.write('<html></html>');
+            if (self.isSubDomain) {
+                htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
             }
             else {
-                htmlfile.write('<html><script>' + 'document.domain="' + document.domain + '";' + '</script></html>');
+                htmlfile.write('<html></html>');
             }
             htmlfile.parentWindow.Orbited = Orbited;
             htmlfile.close();
@@ -2224,7 +2224,8 @@ Orbited.CometTransports.Poll.ie = 0.5
             if (!_url.domain || !self.domain) {
                 return false;
             }
-            return (_url.port == self.port && _url.domain == self.domain.split('.').slice(1).join('.'));
+            return (_url.port == self.port && self.domain.indexOf("."+_url.domain) > 0);
+//            return (_url.port == self.port && _url.domain == self.domain.split('.').slice(1).join('.'));
         };
         var decodeQs = function(qs) {
             //      alert('a')
