@@ -36,6 +36,11 @@ def _setup_static(root, config):
         root.putChild(key, static.File(val))
 
 def main():
+    try:
+        import twisted
+    except ImportError:
+        print "Orbited requires Twisted, which is not installed. See http://twistedmatrix.com/trac/ for installation instructions."
+        sys.exit(1)
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option(
