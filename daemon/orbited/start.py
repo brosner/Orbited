@@ -41,6 +41,13 @@ def main():
     except ImportError:
         print "Orbited requires Twisted, which is not installed. See http://twistedmatrix.com/trac/ for installation instructions."
         sys.exit(1)
+    import platform
+    if platform.system() == "Windows":
+        try:
+            import win32api
+        except ImportError:
+            print "Orbited for Windows requires the Python for Windows Extensions, which are not installed. See http://python.net/crew/mhammond/win32/ for installation instructions."
+            sys.exit(1)
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option(
