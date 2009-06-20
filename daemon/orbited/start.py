@@ -41,13 +41,20 @@ def main():
     except ImportError:
         print "Orbited requires Twisted, which is not installed. See http://twistedmatrix.com/trac/ for installation instructions."
         sys.exit(1)
-    import platform
-    if platform.system() == "Windows":
-        try:
-            import win32api
-        except ImportError:
-            print "Orbited for Windows requires the Python for Windows Extensions, which are not installed. See http://python.net/crew/mhammond/win32/ for installation instructions."
-            sys.exit(1)
+
+    #################
+    # This corrects a bug in Twisted 8.2.0 for certain Python 2.6 builds on Windows
+    #   Twisted ticket: http://twistedmatrix.com/trac/ticket/3868
+    #     -mario
+    try:
+        from twisted.python import lockfile
+    except ImportError:
+        from orbited import __path__ as orbited_path
+        sys.path.append(os.path.join(orbited_path[0],"hotfixes","win32api"))
+        from twisted.python import lockfile
+        lockfile.kill = None
+    #################
+
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option(
