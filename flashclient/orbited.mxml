@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="test()">
+    <mx:Script>
+    <![CDATA[
+        import org.orbited.net.*;
+        import org.orbited.logging.*;
+        public function test():void {
+            var tcp:TCPSocket = new TCPSocket();
+            tcp.open('irc.freenode.net', 6667);
+        }
+    ]]>
+    </mx:Script>
+        
+</mx:Application>
