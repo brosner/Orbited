@@ -67,7 +67,7 @@ class CometTransport(resource.Resource):
         self.heartbeatTimer.cancel()
         self.heartbeatTimer = None
         self.open = False
-        if self.request:
+        if self.request and not self.request._disconnected:
             logger.debug('calling finish')
             self.request.finish()
         self.request = None
